@@ -106,17 +106,17 @@ local Cache = {}
 local RenderConnection
 
 local function NewDrawing(Type, Properties)
-    local Drawing_Object = Drawing.new(Type)
+    local Object = Drawing.new(Type)
     for k, v in next, Properties or {} do
-        Drawing_Object[k] = v
+        Object[k] = v
     end
-    table.insert(Cache, Drawing_Object)
-    return Drawing_Object
+    table.insert(Cache, Object)
+    return Object
 end
 
-local function Track(Instance_Object)
-    table.insert(Cache, Instance_Object)
-    return Instance_Object
+local function Track(Instance)
+    table.insert(Cache, Instance)
+    return Instance
 end
 
 local function WorldToScreen(Position)
@@ -128,26 +128,44 @@ local function GetOffScreenPosition(WorldPosition)
     local ViewportSize = Camera.ViewportSize
     local ScreenCenter = Vector2.new(ViewportSize.X / 2, ViewportSize.Y / 2)
     local CameraSpace = Camera.CFrame:PointToObjectSpace(WorldPosition)
+    local IsBehind = CameraSpace.Z > 0
     
-    if CameraSpace.Z > 0 then
-        CameraSpace = Vector3.new(-CameraSpace.X, -CameraSpace.Y, CameraSpace.Z)
+    if IsBehind then
+        CameraSpace = Vector3.new(-CameraSpace.X, -CameraSpace.Y, -CameraSpace.Z)
     end
     
-    local Direction = Vector2.new(CameraSpace.X, -CameraSpace.Y).Unit
+    local Direction2D = Vector2.new(CameraSpace.X, -CameraSpace.Y)
+    if Direction2D.Magnitude < 0.001 then
+        Direction2D = Vector2.new(0, -1)
+    else
+        Direction2D = Direction2D.Unit
+    end
+    
     local Padding = 50
     local MaxX = (ViewportSize.X / 2) - Padding
     local MaxY = (ViewportSize.Y / 2) - Padding
-    local ScaleX = math.abs(Direction.X) > 0.001 and (MaxX / math.abs(Direction.X)) or math.huge
-    local ScaleY = math.abs(Direction.Y) > 0.001 and (MaxY / math.abs(Direction.Y)) or math.huge
+    local ScaleX = math.abs(Direction2D.X) > 0.001 and (MaxX / math.abs(Direction2D.X)) or math.huge
+    local ScaleY = math.abs(Direction2D.Y) > 0.001 and (MaxY / math.abs(Direction2D.Y)) or math.huge
     local Scale = math.min(ScaleX, ScaleY)
     
-    return ScreenCenter + (Direction * Scale)
+    return ScreenCenter + (Direction2D * Scale), IsBehind
+end
+
+local function GetTracerOrigin()
+    local Origin = ESP.Settings.Tracer.Origin
+    if type(Origin) == "table" then Origin = Origin[1] end
+    
+    if Origin == "Bottom" then
+        return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+    elseif Origin == "Center" then
+        return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+    else
+        return UserInputService:GetMouseLocation()
+    end
 end
 
 local function IsTeammate(Player)
-    if not ESP.Settings.TeamCheck then
-        return false
-    end
+    if not ESP.Settings.TeamCheck then return false end
     if LocalPlayer.Team and Player.Team then
         return LocalPlayer.Team == Player.Team
     end
@@ -310,36 +328,36 @@ end
 function ESPObject:DrawCornerBox(BoxPos, BoxSize, Color)
     local X, Y = BoxPos.X, BoxPos.Y
     local W, H = BoxSize.X, BoxSize.Y
-    local LineLength = math.floor(W / 3)
+    local L = math.floor(W / 3)
     
     local Corners = {
-        {self.Drawings.Corner1, X, Y, X + LineLength, Y},
-        {self.Drawings.Corner2, X, Y, X, Y + LineLength},
-        {self.Drawings.Corner3, X + W - LineLength, Y, X + W, Y},
-        {self.Drawings.Corner4, X + W, Y, X + W, Y + LineLength},
-        {self.Drawings.Corner5, X, Y + H - LineLength, X, Y + H},
-        {self.Drawings.Corner6, X, Y + H, X + LineLength, Y + H},
-        {self.Drawings.Corner7, X + W, Y + H - LineLength, X + W, Y + H},
-        {self.Drawings.Corner8, X + W - LineLength, Y + H, X + W, Y + H}
+        {X, Y, X + L, Y},
+        {X, Y, X, Y + L},
+        {X + W - L, Y, X + W, Y},
+        {X + W, Y, X + W, Y + L},
+        {X, Y + H - L, X, Y + H},
+        {X, Y + H, X + L, Y + H},
+        {X + W, Y + H - L, X + W, Y + H},
+        {X + W - L, Y + H, X + W, Y + H}
     }
     
     for i = 1, 8 do
-        local Data = Corners[i]
-        local Line = Data[1]
-        local OutlineLine = self.Drawings["CornerOutline" .. i]
+        local C = Corners[i]
+        local Line = self.Drawings["Corner" .. i]
+        local Outline = self.Drawings["CornerOutline" .. i]
         
         Line.Visible = true
         Line.Color = Color
-        Line.From = Vector2.new(Data[2], Data[3])
-        Line.To = Vector2.new(Data[4], Data[5])
+        Line.From = Vector2.new(C[1], C[2])
+        Line.To = Vector2.new(C[3], C[4])
         
         if ESP.Settings.Box.Outline then
-            OutlineLine.Visible = true
-            OutlineLine.Color = ESP.Settings.Box.OutlineColor
-            OutlineLine.From = Line.From
-            OutlineLine.To = Line.To
+            Outline.Visible = true
+            Outline.Color = ESP.Settings.Box.OutlineColor
+            Outline.From = Line.From
+            Outline.To = Line.To
         else
-            OutlineLine.Visible = false
+            Outline.Visible = false
         end
     end
 end
@@ -451,32 +469,32 @@ function ESPObject:Update()
         return
     end
     
-    if not OnScreen then
-        if ESP.Settings.Tracer.Enabled then
-            local TracerColor = GetPlayerColor(self.Player) or ESP.Settings.Tracer.Color
-            local EdgePos = GetOffScreenPosition(RootPart.Position)
-            
-            self.Drawings.Tracer.Visible = true
-            self.Drawings.Tracer.Color = TracerColor
-            self.Drawings.Tracer.Thickness = ESP.Settings.Tracer.Thickness
-            self.Drawings.Tracer.To = EdgePos
-            
-            local Origin = ESP.Settings.Tracer.Origin
-            if type(Origin) == "table" then
-                Origin = Origin[1]
-            end
-            
-            if Origin == "Bottom" then
-                self.Drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-            elseif Origin == "Center" then
-                self.Drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-            else
-                self.Drawings.Tracer.From = UserInputService:GetMouseLocation()
-            end
+    local MainColor = GetPlayerColor(self.Player) or ESP.Settings.Box.Color
+    local TextColor = GetPlayerColor(self.Player) or ESP.Settings.Name.Color
+    local TracerColor = GetPlayerColor(self.Player) or ESP.Settings.Tracer.Color
+    
+    if ESP.Settings.Tracer.Enabled then
+        local TracerFrom = GetTracerOrigin()
+        local TracerTo
+        
+        if OnScreen then
+            local ScaleFactor = (1 / ((Distance / 3) * math.tan(math.rad(Camera.FieldOfView / 2)) * 2)) * 1150
+            local BoxHeight = math.floor(ScaleFactor * 2.1)
+            TracerTo = Vector2.new(ScreenPos.X, ScreenPos.Y + BoxHeight / 2)
         else
-            self.Drawings.Tracer.Visible = false
+            TracerTo = GetOffScreenPosition(RootPart.Position)
         end
         
+        self.Drawings.Tracer.Visible = true
+        self.Drawings.Tracer.Color = TracerColor
+        self.Drawings.Tracer.Thickness = ESP.Settings.Tracer.Thickness
+        self.Drawings.Tracer.From = TracerFrom
+        self.Drawings.Tracer.To = TracerTo
+    else
+        self.Drawings.Tracer.Visible = false
+    end
+    
+    if not OnScreen then
         for k, v in next, self.Drawings do
             if k ~= "Tracer" then
                 v.Visible = false
@@ -488,8 +506,6 @@ function ESPObject:Update()
         return
     end
     
-    local MainColor = GetPlayerColor(self.Player) or ESP.Settings.Box.Color
-    local TextColor = GetPlayerColor(self.Player) or ESP.Settings.Name.Color
     local IsHighDetail = not ESP.Settings.LOD.Enabled or Distance <= ESP.Settings.LOD.Distance
     
     local ScaleFactor = (1 / ((Distance / 3) * math.tan(math.rad(Camera.FieldOfView / 2)) * 2)) * 1150
@@ -503,9 +519,7 @@ function ESPObject:Update()
     
     if ESP.Settings.Box.Enabled then
         local BoxType = ESP.Settings.Box.Type
-        if type(BoxType) == "table" then
-            BoxType = BoxType[1]
-        end
+        if type(BoxType) == "table" then BoxType = BoxType[1] end
         
         if BoxType == "Full" then
             if ESP.Settings.Box.Outline then
@@ -589,9 +603,7 @@ function ESPObject:Update()
         local BarOffset = 4
         
         local HealthPosition = ESP.Settings.Health.Position
-        if type(HealthPosition) == "table" then
-            HealthPosition = HealthPosition[1]
-        end
+        if type(HealthPosition) == "table" then HealthPosition = HealthPosition[1] end
         
         local BarX, BarY
         if HealthPosition == "Left" then
@@ -624,7 +636,12 @@ function ESPObject:Update()
             self.Drawings.HealthText.Size = ESP.Settings.Text.Size
             self.Drawings.HealthText.Font = ESP.Settings.Text.Font
             
-            local TextX = HealthPosition == "Left" and BarX - 20 or BarX + BarWidth + 4
+            local TextX
+            if HealthPosition == "Left" then
+                TextX = BarX - 20
+            else
+                TextX = BarX + BarWidth + 4
+            end
             
             self.Drawings.HealthText.Position = Vector2.new(
                 math.floor(TextX),
@@ -709,31 +726,6 @@ function ESPObject:Update()
         end
     else
         self.Drawings.LookDirection.Visible = false
-    end
-    
-    if ESP.Settings.Tracer.Enabled then
-        self.Drawings.Tracer.Visible = true
-        self.Drawings.Tracer.Color = ESP.Settings.Tracer.Color
-        self.Drawings.Tracer.Thickness = ESP.Settings.Tracer.Thickness
-        self.Drawings.Tracer.To = Vector2.new(
-            math.floor(BoxPos.X + BoxWidth / 2),
-            math.floor(BoxPos.Y + BoxHeight)
-        )
-        
-        local Origin = ESP.Settings.Tracer.Origin
-        if type(Origin) == "table" then
-            Origin = Origin[1]
-        end
-        
-        if Origin == "Bottom" then
-            self.Drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
-        elseif Origin == "Center" then
-            self.Drawings.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-        else
-            self.Drawings.Tracer.From = UserInputService:GetMouseLocation()
-        end
-    else
-        self.Drawings.Tracer.Visible = false
     end
     
     local ChamsColor = GetPlayerColor(self.Player) or ESP.Settings.Chams.Color
