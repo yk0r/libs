@@ -6,7 +6,7 @@
     ██║     ███████║███████╗██║██████╔╝
     ╚═╝     ╚══════╝╚══════╝╚═╝╚═════╝ 
     
-    FriendShip.Lua (FSlib) v1.0.3
+    FriendShip.Lua (FSlib) v1.0.4
     A professional Roblox GUI Library
     
     GitHub: https://github.com/FSlib
@@ -14,7 +14,7 @@
 ]]
 
 local FSlib = {
-    _VERSION = "1.0.3",
+    _VERSION = "1.0.4",
     _NAME = "FriendShip.Lua",
     Flags = {},
     Windows = {},
@@ -874,6 +874,17 @@ function FSlib:CreateWindow(options)
                 })
                 BindToTheme(dropdownArrow, "TextColor3", "TextDark")
                 
+                -- 点击背景遮罩 - 用于拦截点击事件
+                local dropdownOverlay = Create("TextButton", {
+                    Name = "Overlay_" .. name,
+                    Parent = screenGui,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    Text = "",
+                    Visible = false,
+                    ZIndex = 999,
+                })
+                
                 -- Dropdown List Container - 放在 ScreenGui 顶层确保不被遮挡
                 local dropdownList = Create("Frame", {
                     Name = "List_" .. name,
@@ -949,9 +960,7 @@ function FSlib:CreateWindow(options)
                         itemButton.MouseButton1Click:Connect(function()
                             value = item
                             dropdownButton.Text = "  " .. tostring(value)
-                            isOpen = false
-                            dropdownList.Visible = false
-                            dropdownArrow.Text = "▼"
+                            closeDropdown()
                             
                             if flag then
                                 FSlib.Flags[flag] = value
@@ -963,9 +972,21 @@ function FSlib:CreateWindow(options)
                 
                 createItems()
                 
+                local function closeDropdown()
+                    isOpen = false
+                    dropdownList.Visible = false
+                    dropdownOverlay.Visible = false
+                    dropdownArrow.Text = "▼"
+                end
+                
+                dropdownOverlay.MouseButton1Click:Connect(function()
+                    closeDropdown()
+                end)
+                
                 dropdownButton.MouseButton1Click:Connect(function()
                     isOpen = not isOpen
                     dropdownList.Visible = isOpen
+                    dropdownOverlay.Visible = isOpen
                     dropdownArrow.Text = isOpen and "▲" or "▼"
                     
                     if isOpen then
@@ -1151,6 +1172,17 @@ function FSlib:CreateWindow(options)
                     Parent = colorPreview,
                     Color = FSlib.Theme.Border,
                     Thickness = 1,
+                })
+                
+                -- 点击背景遮罩 - 用于拦截点击事件
+                local colorOverlay = Create("TextButton", {
+                    Name = "ColorOverlay_" .. name,
+                    Parent = screenGui,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    Text = "",
+                    Visible = false,
+                    ZIndex = 1999,
                 })
                 
                 -- Color Picker Panel - 放在 ScreenGui 顶层确保不被遮挡
@@ -1424,10 +1456,22 @@ function FSlib:CreateWindow(options)
                     end
                 end)
                 
+                local function closeColorPicker()
+                    isOpen = false
+                    pickerPanel.Visible = false
+                    colorOverlay.Visible = false
+                end
+                
+                -- 点击遮罩关闭 ColorPicker
+                colorOverlay.MouseButton1Click:Connect(function()
+                    closeColorPicker()
+                end)
+                
                 -- Toggle picker
                 colorPreview.MouseButton1Click:Connect(function()
                     isOpen = not isOpen
                     pickerPanel.Visible = isOpen
+                    colorOverlay.Visible = isOpen
                     if isOpen then
                         updatePickerPosition()
                     end
@@ -1435,8 +1479,7 @@ function FSlib:CreateWindow(options)
                 
                 -- Apply button
                 applyButton.MouseButton1Click:Connect(function()
-                    isOpen = false
-                    pickerPanel.Visible = false
+                    closeColorPicker()
                     updateColor()
                 end)
                 
