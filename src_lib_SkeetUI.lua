@@ -1,33 +1,18 @@
 --[[
-    ╔═══════════════════════════════════════════════════════════════╗
-    ║                     SKEET UI LIBRARY                          ║
-    ║            Premium Roblox Script GUI Library                  ║
-    ║                    Neverlose/Skeet Style                      ║
-    ╚═══════════════════════════════════════════════════════════════╝
-    
-    Style: Modern minimalist with gradient accents
-    Inspired by: Neverlose, Skeet, Gamesense V2
+    ╔═══════════════════════════════════════════════════════════════════════════╗
+    ║                           SKEET UI LIBRARY                                ║
+    ║                   Premium Roblox Script GUI Library                       ║
+    ║                       Neverlose/Skeet Style v2.0                          ║
+    ╚═══════════════════════════════════════════════════════════════════════════╝
     
     Features:
+    - Watermark with FPS/Ping/Time display
     - Fully functional Color Picker (HSV + Alpha)
-    - Smooth animations
-    - Multi-tab support
+    - Draggable window with proper rounded corners
+    - Smooth animations & transitions
+    - Multi-tab system
     - Notification system
     - Keybind system
-    
-    Usage:
-    local SkeetUI = loadstring(game:HttpGet("your_url"))()
-    local Window = SkeetUI:CreateWindow({
-        Title = "Skeet",
-        Subtitle = "premium",
-        Size = UDim2.new(0, 580, 0, 460),
-        Theme = "Dark"
-    })
-    
-    local Tab = Window:CreateTab({Name = "Rage", Icon = "rage"})
-    local Section = Tab:CreateSection({Name = "Aimbot", Side = "Left"})
-    
-    Section:CreateToggle({Name = "Enabled", Default = false, Callback = function(v) end})
 ]]
 
 local SkeetUI = {}
@@ -38,7 +23,10 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local Stats = game:GetService("Stats")
 local CoreGui = game:GetService("CoreGui")
+
+local Player = Players.LocalPlayer
 
 -- Theme Definitions
 local Themes = {
@@ -212,7 +200,248 @@ local function RGBtoHSV(color)
     return h, s, v
 end
 
--- Main Window Creation
+local function ColorToHex(color)
+    return string.format("#%02X%02X%02X", 
+        math.floor(color.R * 255), 
+        math.floor(color.G * 255), 
+        math.floor(color.B * 255)
+    )
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- WATERMARK SYSTEM
+-- ═══════════════════════════════════════════════════════════════════════════
+function SkeetUI:CreateWatermark(options)
+    options = options or {}
+    local title = options.Title or "skeet.cc"
+    local theme = Themes[options.Theme or "Dark"]
+    local position = options.Position or UDim2.new(0, 20, 0, 20)
+    local showFPS = options.ShowFPS ~= false
+    local showPing = options.ShowPing ~= false
+    local showTime = options.ShowTime ~= false
+    local showUser = options.ShowUser ~= false
+    
+    local Watermark = {}
+    
+    -- Screen GUI
+    local ScreenGui = Create("ScreenGui", {
+        Name = "SkeetUI_Watermark_" .. tostring(math.random(100000, 999999)),
+        ResetOnSpawn = false,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        DisplayOrder = 999,
+        Parent = CoreGui
+    })
+    
+    Watermark.Gui = ScreenGui
+    
+    -- Main Container
+    local Container = Create("Frame", {
+        Name = "WatermarkContainer",
+        Size = UDim2.new(0, 0, 0, 24),
+        AutomaticSize = Enum.AutomaticSize.X,
+        Position = position,
+        BackgroundColor3 = theme.Background,
+        BorderSizePixel = 0,
+        Parent = ScreenGui
+    })
+    AddCorner(Container, 4)
+    AddStroke(Container, theme.Border, 1)
+    
+    -- Top gradient line (matches window corner radius)
+    local TopLine = Create("Frame", {
+        Name = "TopLine",
+        Size = UDim2.new(1, 0, 0, 2),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        Parent = Container
+    })
+    
+    -- Use UICorner to match container corners
+    local TopLineCorner = Create("UICorner", {
+        CornerRadius = UDim.new(0, 4),
+        Parent = TopLine
+    })
+    
+    -- Cover bottom of top line rounded corners
+    local TopLineCover = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 2),
+        Position = UDim2.new(0, 0, 1, -1),
+        BackgroundColor3 = Color3.new(1, 1, 1),
+        BorderSizePixel = 0,
+        Parent = TopLine
+    })
+    
+    local TopGradient = Create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, theme.Gradient1),
+            ColorSequenceKeypoint.new(1, theme.Gradient2)
+        }),
+        Parent = TopLine
+    })
+    
+    -- Content holder
+    local ContentHolder = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, -2),
+        Position = UDim2.new(0, 0, 0, 2),
+        BackgroundTransparency = 1,
+        Parent = Container
+    })
+    
+    local ContentLayout = Create("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 0),
+        Parent = ContentHolder
+    })
+    
+    local ContentPadding = Create("UIPadding", {
+        PaddingLeft = UDim.new(0, 10),
+        PaddingRight = UDim.new(0, 10),
+        Parent = ContentHolder
+    })
+    
+    -- Title
+    local TitleLabel = Create("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
+        BackgroundTransparency = 1,
+        Text = title,
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextColor3 = theme.Accent,
+        Parent = ContentHolder
+    })
+    
+    local function CreateSeparator()
+        local Sep = Create("TextLabel", {
+            Size = UDim2.new(0, 20, 1, 0),
+            BackgroundTransparency = 1,
+            Text = "|",
+            Font = Enum.Font.Gotham,
+            TextSize = 11,
+            TextColor3 = theme.Border,
+            Parent = ContentHolder
+        })
+        return Sep
+    end
+    
+    local function CreateInfoLabel(name)
+        local Label = Create("TextLabel", {
+            Name = name,
+            Size = UDim2.new(0, 0, 1, 0),
+            AutomaticSize = Enum.AutomaticSize.X,
+            BackgroundTransparency = 1,
+            Text = "",
+            Font = Enum.Font.Gotham,
+            TextSize = 11,
+            TextColor3 = theme.TextDim,
+            Parent = ContentHolder
+        })
+        return Label
+    end
+    
+    local labels = {}
+    
+    if showUser then
+        CreateSeparator()
+        labels.User = CreateInfoLabel("User")
+        labels.User.Text = Player.Name
+    end
+    
+    if showFPS then
+        CreateSeparator()
+        labels.FPS = CreateInfoLabel("FPS")
+    end
+    
+    if showPing then
+        CreateSeparator()
+        labels.Ping = CreateInfoLabel("Ping")
+    end
+    
+    if showTime then
+        CreateSeparator()
+        labels.Time = CreateInfoLabel("Time")
+    end
+    
+    -- Update loop
+    local lastTime = tick()
+    local frameCount = 0
+    local fps = 0
+    
+    RunService.RenderStepped:Connect(function()
+        frameCount = frameCount + 1
+        
+        if tick() - lastTime >= 1 then
+            fps = frameCount
+            frameCount = 0
+            lastTime = tick()
+        end
+        
+        if labels.FPS then
+            labels.FPS.Text = tostring(fps) .. " fps"
+        end
+        
+        if labels.Ping then
+            local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+            labels.Ping.Text = tostring(ping) .. "ms"
+        end
+        
+        if labels.Time then
+            labels.Time.Text = os.date("%H:%M:%S")
+        end
+    end)
+    
+    -- Dragging
+    local dragging, dragStart, startPos
+    
+    Container.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = Container.Position
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            Container.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    function Watermark:SetTitle(newTitle)
+        TitleLabel.Text = newTitle
+    end
+    
+    function Watermark:Show()
+        Container.Visible = true
+    end
+    
+    function Watermark:Hide()
+        Container.Visible = false
+    end
+    
+    function Watermark:Destroy()
+        ScreenGui:Destroy()
+    end
+    
+    return Watermark
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- MAIN WINDOW CREATION
+-- ═══════════════════════════════════════════════════════════════════════════
 function SkeetUI:CreateWindow(options)
     options = options or {}
     local title = options.Title or "Skeet"
@@ -235,16 +464,20 @@ function SkeetUI:CreateWindow(options)
     
     Window.Gui = ScreenGui
     
-    -- Main Container
-    local MainFrame = Create("Frame", {
-        Name = "MainFrame",
+    -- Main Container (with clipping for rounded corners)
+    local MainContainer = Create("Frame", {
+        Name = "MainContainer",
         Size = size,
         Position = UDim2.new(0.5, -size.X.Offset/2, 0.5, -size.Y.Offset/2),
         BackgroundColor3 = theme.Background,
         BorderSizePixel = 0,
+        ClipsDescendants = true,
         Parent = ScreenGui
     })
-    AddCorner(MainFrame, 8)
+    AddCorner(MainContainer, 8)
+    
+    -- Main border stroke
+    local MainStroke = AddStroke(MainContainer, theme.Border, 1)
     
     -- Outer glow
     local OuterGlow = Create("ImageLabel", {
@@ -257,32 +490,95 @@ function SkeetUI:CreateWindow(options)
         ImageTransparency = 0.85,
         ScaleType = Enum.ScaleType.Slice,
         SliceCenter = Rect.new(23, 23, 277, 277),
-        Parent = MainFrame
+        ZIndex = 0,
+        Parent = MainContainer
     })
     
-    -- Main border
-    local MainStroke = AddStroke(MainFrame, theme.Border, 1)
-    
-    -- Top gradient line
-    local GradientLine = Create("Frame", {
-        Name = "GradientLine",
+    -- Top gradient line (inside container, clipped by corner)
+    local TopGradientLine = Create("Frame", {
+        Name = "TopGradientLine",
         Size = UDim2.new(1, 0, 0, 2),
         Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
-        Parent = MainFrame
+        ZIndex = 10,
+        Parent = MainContainer
     })
     
-    local GradientLineCorner = Create("UICorner", {
-        CornerRadius = UDim.new(0, 8),
-        Parent = GradientLine
-    })
-    
-    local Gradient = Create("UIGradient", {
+    local TopGradient = Create("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, theme.Gradient1),
             ColorSequenceKeypoint.new(1, theme.Gradient2)
         }),
-        Parent = GradientLine
+        Parent = TopGradientLine
+    })
+    
+    -- Bottom Status Bar
+    local StatusBar = Create("Frame", {
+        Name = "StatusBar",
+        Size = UDim2.new(1, 0, 0, 22),
+        Position = UDim2.new(0, 0, 1, -22),
+        BackgroundColor3 = theme.Tertiary,
+        BorderSizePixel = 0,
+        ZIndex = 10,
+        Parent = MainContainer
+    })
+    
+    -- Status bar top border
+    local StatusBorder = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 1),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = theme.Border,
+        BorderSizePixel = 0,
+        Parent = StatusBar
+    })
+    
+    -- Status dot (green = ready)
+    local StatusDot = Create("Frame", {
+        Size = UDim2.new(0, 6, 0, 6),
+        Position = UDim2.new(0, 12, 0.5, -3),
+        BackgroundColor3 = theme.Success,
+        BorderSizePixel = 0,
+        Parent = StatusBar
+    })
+    AddCorner(StatusDot, 3)
+    
+    -- Status text
+    local StatusText = Create("TextLabel", {
+        Size = UDim2.new(0, 80, 1, 0),
+        Position = UDim2.new(0, 24, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "ready",
+        Font = Enum.Font.Code,
+        TextSize = 10,
+        TextColor3 = theme.TextDim,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = StatusBar
+    })
+    
+    -- Build info (center)
+    local BuildText = Create("TextLabel", {
+        Size = UDim2.new(0, 200, 1, 0),
+        Position = UDim2.new(0.5, -100, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "build: " .. os.date("%Y%m%d"),
+        Font = Enum.Font.Code,
+        TextSize = 10,
+        TextColor3 = theme.TextDark,
+        Parent = StatusBar
+    })
+    
+    -- Version (right side)
+    local VersionText = Create("TextLabel", {
+        Size = UDim2.new(0, 80, 1, 0),
+        Position = UDim2.new(1, -92, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "v2.0.0",
+        Font = Enum.Font.Code,
+        TextSize = 10,
+        TextColor3 = theme.TextDim,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        Parent = StatusBar
     })
     
     -- Header
@@ -291,7 +587,7 @@ function SkeetUI:CreateWindow(options)
         Size = UDim2.new(1, 0, 0, 40),
         Position = UDim2.new(0, 0, 0, 2),
         BackgroundTransparency = 1,
-        Parent = MainFrame
+        Parent = MainContainer
     })
     
     local TitleLabel = Create("TextLabel", {
@@ -320,7 +616,7 @@ function SkeetUI:CreateWindow(options)
         Parent = Header
     })
     
-    -- Window Controls
+    -- Window Controls (FIXED: Minimize left, Close right)
     local Controls = Create("Frame", {
         Name = "Controls",
         Size = UDim2.new(0, 70, 0, 20),
@@ -336,12 +632,13 @@ function SkeetUI:CreateWindow(options)
         Parent = Controls
     })
     
-    -- Minimize Button
+    -- Minimize Button (comes first in layout = appears on left)
     local MinimizeBtn = Create("TextButton", {
         Name = "Minimize",
         Size = UDim2.new(0, 20, 0, 20),
         BackgroundColor3 = theme.Surface,
         Text = "",
+        LayoutOrder = 1,
         Parent = Controls
     })
     AddCorner(MinimizeBtn, 4)
@@ -356,12 +653,13 @@ function SkeetUI:CreateWindow(options)
     })
     AddCorner(MinIcon, 1)
     
-    -- Close Button
+    -- Close Button (comes second in layout = appears on right)
     local CloseBtn = Create("TextButton", {
         Name = "Close",
         Size = UDim2.new(0, 20, 0, 20),
         BackgroundColor3 = theme.Surface,
         Text = "",
+        LayoutOrder = 2,
         Parent = Controls
     })
     AddCorner(CloseBtn, 4)
@@ -384,7 +682,7 @@ function SkeetUI:CreateWindow(options)
         Position = UDim2.new(0, 12, 0, 42),
         BackgroundColor3 = theme.Secondary,
         BorderSizePixel = 0,
-        Parent = MainFrame
+        Parent = MainContainer
     })
     AddCorner(TabContainer, 6)
     AddStroke(TabContainer, theme.Border, 1)
@@ -403,14 +701,14 @@ function SkeetUI:CreateWindow(options)
         Parent = TabHolder
     })
     
-    -- Content Container
+    -- Content Container (adjusted for status bar)
     local ContentContainer = Create("Frame", {
         Name = "ContentContainer",
-        Size = UDim2.new(1, -24, 1, -88),
+        Size = UDim2.new(1, -24, 1, -106),
         Position = UDim2.new(0, 12, 0, 76),
         BackgroundTransparency = 1,
         ClipsDescendants = true,
-        Parent = MainFrame
+        Parent = MainContainer
     })
     
     -- Notification Container
@@ -435,14 +733,14 @@ function SkeetUI:CreateWindow(options)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
-            startPos = MainFrame.Position
+            startPos = MainContainer.Position
         end
     end)
     
     UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
-            MainFrame.Position = UDim2.new(
+            MainContainer.Position = UDim2.new(
                 startPos.X.Scale, startPos.X.Offset + delta.X,
                 startPos.Y.Scale, startPos.Y.Offset + delta.Y
             )
@@ -455,26 +753,28 @@ function SkeetUI:CreateWindow(options)
         end
     end)
     
-    -- Control Buttons
+    -- Control Buttons Logic
     local minimized = false
     local originalSize = size
     
     MinimizeBtn.MouseButton1Click:Connect(function()
         minimized = not minimized
         if minimized then
-            Tween(MainFrame, {Size = UDim2.new(0, size.X.Offset, 0, 44)}, 0.3)
+            Tween(MainContainer, {Size = UDim2.new(0, size.X.Offset, 0, 44)}, 0.3)
             ContentContainer.Visible = false
             TabContainer.Visible = false
+            StatusBar.Visible = false
         else
-            Tween(MainFrame, {Size = originalSize}, 0.3)
+            Tween(MainContainer, {Size = originalSize}, 0.3)
             task.wait(0.2)
             ContentContainer.Visible = true
             TabContainer.Visible = true
+            StatusBar.Visible = true
         end
     end)
     
     CloseBtn.MouseButton1Click:Connect(function()
-        Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.3)
+        Tween(MainContainer, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.3)
         task.wait(0.3)
         ScreenGui:Destroy()
     end)
@@ -489,7 +789,9 @@ function SkeetUI:CreateWindow(options)
         end)
     end
     
-    -- Notification Function
+    -- ═══════════════════════════════════════════════════════════════════
+    -- NOTIFICATION FUNCTION
+    -- ═══════════════════════════════════════════════════════════════════
     function Window:Notify(options)
         options = options or {}
         local notifTitle = options.Title or "Notification"
@@ -511,15 +813,24 @@ function SkeetUI:CreateWindow(options)
             Size = UDim2.new(1, 0, 0, 60),
             BackgroundColor3 = theme.Secondary,
             BorderSizePixel = 0,
+            ClipsDescendants = true,
             Parent = NotificationContainer
         })
         AddCorner(Notification, 6)
         AddStroke(Notification, theme.Border, 1)
         
-        -- Accent line
+        -- Top accent line
+        local TopAccent = Create("Frame", {
+            Size = UDim2.new(1, 0, 0, 2),
+            BackgroundColor3 = accentColor,
+            BorderSizePixel = 0,
+            Parent = Notification
+        })
+        
+        -- Accent line (left side)
         local AccentLine = Create("Frame", {
             Size = UDim2.new(0, 3, 1, -8),
-            Position = UDim2.new(0, 4, 0, 4),
+            Position = UDim2.new(0, 4, 0, 6),
             BackgroundColor3 = accentColor,
             BorderSizePixel = 0,
             Parent = Notification
@@ -581,7 +892,9 @@ function SkeetUI:CreateWindow(options)
         end)
     end
     
-    -- Create Tab Function
+    -- ═══════════════════════════════════════════════════════════════════
+    -- CREATE TAB FUNCTION
+    -- ═══════════════════════════════════════════════════════════════════
     function Window:CreateTab(options)
         options = options or {}
         local tabName = options.Name or "Tab"
@@ -667,14 +980,12 @@ function SkeetUI:CreateWindow(options)
         
         -- Tab Selection
         local function SelectTab()
-            -- Deselect all tabs
             for _, t in ipairs(Window.Tabs) do
                 Tween(t.Button, {BackgroundTransparency = 1}, 0.2)
                 Tween(t.Label, {TextColor3 = theme.TextDim}, 0.2)
                 t.Content.Visible = false
             end
             
-            -- Select this tab
             Tween(TabButton, {BackgroundTransparency = 0, BackgroundColor3 = theme.Surface}, 0.2)
             Tween(TabLabel, {TextColor3 = theme.Text}, 0.2)
             TabContent.Visible = true
@@ -683,7 +994,6 @@ function SkeetUI:CreateWindow(options)
         
         TabButton.MouseButton1Click:Connect(SelectTab)
         
-        -- Hover effect
         TabButton.MouseEnter:Connect(function()
             if Window.ActiveTab ~= Tab then
                 Tween(TabLabel, {TextColor3 = theme.Text}, 0.15)
@@ -702,7 +1012,9 @@ function SkeetUI:CreateWindow(options)
         Tab.LeftColumn = LeftColumn
         Tab.RightColumn = RightColumn
         
-        -- Create Section Function
+        -- ═══════════════════════════════════════════════════════════════════
+        -- CREATE SECTION FUNCTION
+        -- ═══════════════════════════════════════════════════════════════════
         function Tab:CreateSection(options)
             options = options or {}
             local sectionName = options.Name or "Section"
@@ -729,6 +1041,7 @@ function SkeetUI:CreateWindow(options)
                 Size = UDim2.new(1, 0, 0, 28),
                 BackgroundColor3 = theme.Tertiary,
                 BorderSizePixel = 0,
+                ClipsDescendants = true,
                 Parent = SectionFrame
             })
             
@@ -737,7 +1050,6 @@ function SkeetUI:CreateWindow(options)
                 Parent = SectionHeader
             })
             
-            -- Bottom corner cover
             local CornerCover = Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 8),
                 Position = UDim2.new(0, 0, 1, -8),
@@ -962,15 +1274,7 @@ function SkeetUI:CreateWindow(options)
                 })
                 AddCorner(SliderKnob, 6)
                 
-                local SliderButton = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 0, 20),
-                    Position = UDim2.new(0, 0, 0, 22),
-                    BackgroundTransparency = 1,
-                    Text = "",
-                    Parent = SliderFrame
-                })
-                
-                local dragging = false
+                local sliderDragging = false
                 
                 local function UpdateSlider(input)
                     local pos = UDim2.new(
@@ -987,25 +1291,23 @@ function SkeetUI:CreateWindow(options)
                     callback(value)
                 end
                 
-                SliderButton.MouseButton1Down:Connect(function()
-                    dragging = true
+                SliderBg.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        sliderDragging = true
+                        UpdateSlider(input)
+                    end
                 end)
                 
                 UserInputService.InputChanged:Connect(function(input)
-                    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                    if sliderDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
                         UpdateSlider(input)
                     end
                 end)
                 
                 UserInputService.InputEnded:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        dragging = false
+                        sliderDragging = false
                     end
-                end)
-                
-                SliderButton.MouseButton1Click:Connect(function()
-                    local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-                    UpdateSlider({Position = Vector2.new(mouse.X, mouse.Y)})
                 end)
                 
                 return {
@@ -1060,7 +1362,6 @@ function SkeetUI:CreateWindow(options)
                 })
                 
                 ButtonFrame.MouseButton1Click:Connect(function()
-                    -- Click animation
                     Tween(ButtonFrame, {Size = UDim2.new(1, -4, 0, 26)}, 0.1)
                     task.wait(0.1)
                     Tween(ButtonFrame, {Size = UDim2.new(1, 0, 0, 28)}, 0.1)
@@ -1235,6 +1536,17 @@ function SkeetUI:CreateWindow(options)
                     end,
                     Get = function()
                         return selected
+                    end,
+                    Refresh = function(newOptions)
+                        for _, child in ipairs(OptionsContainer:GetChildren()) do
+                            if child:IsA("TextButton") then
+                                child:Destroy()
+                            end
+                        end
+                        optionsList = newOptions
+                        for _, opt in ipairs(optionsList) do
+                            CreateOption(opt)
+                        end
                     end
                 }
             end
@@ -1414,7 +1726,7 @@ function SkeetUI:CreateWindow(options)
                 AddCorner(ColorFrame, 4)
                 
                 local ColorLabel = Create("TextLabel", {
-                    Size = UDim2.new(1, -50, 1, 0),
+                    Size = UDim2.new(1, -50, 0, 28),
                     Position = UDim2.new(0, 10, 0, 0),
                     BackgroundTransparency = 1,
                     Text = pickerName,
@@ -1425,39 +1737,32 @@ function SkeetUI:CreateWindow(options)
                     Parent = ColorFrame
                 })
                 
-                local ColorPreview = Create("Frame", {
-                    Name = "Preview",
+                -- Color Preview with checkerboard for alpha
+                local PreviewContainer = Create("Frame", {
+                    Name = "PreviewContainer",
                     Size = UDim2.new(0, 32, 0, 16),
-                    Position = UDim2.new(1, -42, 0.5, -8),
-                    BackgroundColor3 = currentColor,
+                    Position = UDim2.new(1, -42, 0, 6),
+                    BackgroundColor3 = Color3.new(1, 1, 1),
                     BorderSizePixel = 0,
                     Parent = ColorFrame
                 })
-                AddCorner(ColorPreview, 4)
-                AddStroke(ColorPreview, theme.Border, 1)
+                AddCorner(PreviewContainer, 4)
+                AddStroke(PreviewContainer, theme.Border, 1)
                 
-                -- Checker pattern for alpha preview
-                local CheckerFrame = Create("Frame", {
-                    Size = UDim2.new(1, 0, 1, 0),
-                    BackgroundColor3 = Color3.new(1, 1, 1),
-                    ZIndex = 0,
-                    Parent = ColorPreview
-                })
-                AddCorner(CheckerFrame, 4)
-                
-                local ColorOverlay = Create("Frame", {
+                local ColorPreview = Create("Frame", {
+                    Name = "Preview",
                     Size = UDim2.new(1, 0, 1, 0),
                     BackgroundColor3 = currentColor,
                     BackgroundTransparency = 1 - currentAlpha,
-                    ZIndex = 1,
-                    Parent = ColorPreview
+                    BorderSizePixel = 0,
+                    Parent = PreviewContainer
                 })
-                AddCorner(ColorOverlay, 4)
+                AddCorner(ColorPreview, 4)
                 
                 -- ═══ PICKER PANEL ═══
                 local PickerPanel = Create("Frame", {
                     Name = "PickerPanel",
-                    Size = UDim2.new(1, -16, 0, 140),
+                    Size = UDim2.new(1, -16, 0, 160),
                     Position = UDim2.new(0, 8, 0, 34),
                     BackgroundColor3 = theme.Tertiary,
                     Visible = false,
@@ -1487,7 +1792,7 @@ function SkeetUI:CreateWindow(options)
                 })
                 AddCorner(WhiteGradient, 4)
                 
-                local WhiteGrad = Create("UIGradient", {
+                Create("UIGradient", {
                     Color = ColorSequence.new({
                         ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
                         ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1))
@@ -1508,7 +1813,7 @@ function SkeetUI:CreateWindow(options)
                 })
                 AddCorner(BlackGradient, 4)
                 
-                local BlackGrad = Create("UIGradient", {
+                Create("UIGradient", {
                     Color = ColorSequence.new({
                         ColorSequenceKeypoint.new(0, Color3.new(0, 0, 0)),
                         ColorSequenceKeypoint.new(1, Color3.new(0, 0, 0))
@@ -1544,8 +1849,7 @@ function SkeetUI:CreateWindow(options)
                 })
                 AddCorner(HueSlider, 4)
                 
-                -- Hue gradient
-                local HueGradient = Create("UIGradient", {
+                Create("UIGradient", {
                     Color = ColorSequence.new({
                         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
                         ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
@@ -1573,30 +1877,31 @@ function SkeetUI:CreateWindow(options)
                 AddStroke(HueCursor, Color3.new(0, 0, 0), 1)
                 
                 -- ═══ ALPHA SLIDER ═══
-                local AlphaSlider = Create("Frame", {
-                    Name = "AlphaSlider",
-                    Size = UDim2.new(1, -50, 0, 12),
+                local AlphaContainer = Create("Frame", {
+                    Name = "AlphaContainer",
+                    Size = UDim2.new(1, -50, 0, 14),
                     Position = UDim2.new(0, 8, 0, 116),
                     BackgroundColor3 = Color3.new(1, 1, 1),
                     BorderSizePixel = 0,
                     Parent = PickerPanel
                 })
-                AddCorner(AlphaSlider, 4)
+                AddCorner(AlphaContainer, 4)
                 
-                local AlphaGradient = Create("Frame", {
+                local AlphaSlider = Create("Frame", {
+                    Name = "AlphaSlider",
                     Size = UDim2.new(1, 0, 1, 0),
                     BackgroundColor3 = currentColor,
                     BorderSizePixel = 0,
-                    Parent = AlphaSlider
+                    Parent = AlphaContainer
                 })
-                AddCorner(AlphaGradient, 4)
+                AddCorner(AlphaSlider, 4)
                 
-                local AlphaGrad = Create("UIGradient", {
+                Create("UIGradient", {
                     Transparency = NumberSequence.new({
                         NumberSequenceKeypoint.new(0, 1),
                         NumberSequenceKeypoint.new(1, 0)
                     }),
-                    Parent = AlphaGradient
+                    Parent = AlphaSlider
                 })
                 
                 -- Alpha Cursor
@@ -1607,19 +1912,80 @@ function SkeetUI:CreateWindow(options)
                     BackgroundColor3 = Color3.new(1, 1, 1),
                     BorderSizePixel = 0,
                     ZIndex = 5,
-                    Parent = AlphaSlider
+                    Parent = AlphaContainer
                 })
                 AddCorner(AlphaCursor, 2)
                 AddStroke(AlphaCursor, Color3.new(0, 0, 0), 1)
                 
+                -- ═══ HEX DISPLAY ═══
+                local HexLabel = Create("TextLabel", {
+                    Size = UDim2.new(0, 60, 0, 14),
+                    Position = UDim2.new(1, -68, 0, 116),
+                    BackgroundTransparency = 1,
+                    Text = ColorToHex(currentColor),
+                    Font = Enum.Font.GothamMedium,
+                    TextSize = 10,
+                    TextColor3 = theme.TextDim,
+                    Parent = PickerPanel
+                })
+                
+                -- ═══ PRESET COLORS ═══
+                local PresetContainer = Create("Frame", {
+                    Size = UDim2.new(1, -16, 0, 18),
+                    Position = UDim2.new(0, 8, 0, 136),
+                    BackgroundTransparency = 1,
+                    Parent = PickerPanel
+                })
+                
+                local PresetLayout = Create("UIListLayout", {
+                    FillDirection = Enum.FillDirection.Horizontal,
+                    Padding = UDim.new(0, 4),
+                    Parent = PresetContainer
+                })
+                
+                local presetColors = {
+                    Color3.fromRGB(255, 0, 0),
+                    Color3.fromRGB(255, 127, 0),
+                    Color3.fromRGB(255, 255, 0),
+                    Color3.fromRGB(0, 255, 0),
+                    Color3.fromRGB(0, 255, 255),
+                    Color3.fromRGB(0, 127, 255),
+                    Color3.fromRGB(0, 0, 255),
+                    Color3.fromRGB(127, 0, 255),
+                    Color3.fromRGB(255, 0, 255),
+                    Color3.fromRGB(255, 255, 255),
+                    Color3.fromRGB(128, 128, 128),
+                    Color3.fromRGB(0, 0, 0)
+                }
+                
                 -- ═══ UPDATE FUNCTIONS ═══
                 local function UpdateColor()
                     currentColor = HSVtoRGB(h, s, v)
-                    ColorOverlay.BackgroundColor3 = currentColor
-                    ColorOverlay.BackgroundTransparency = 1 - currentAlpha
+                    ColorPreview.BackgroundColor3 = currentColor
+                    ColorPreview.BackgroundTransparency = 1 - currentAlpha
                     SVPicker.BackgroundColor3 = HSVtoRGB(h, 1, 1)
-                    AlphaGradient.BackgroundColor3 = currentColor
+                    AlphaSlider.BackgroundColor3 = currentColor
+                    HexLabel.Text = ColorToHex(currentColor)
                     callback(currentColor, currentAlpha)
+                end
+                
+                -- Create preset buttons
+                for _, presetColor in ipairs(presetColors) do
+                    local PresetBtn = Create("TextButton", {
+                        Size = UDim2.new(0, 18, 0, 18),
+                        BackgroundColor3 = presetColor,
+                        Text = "",
+                        Parent = PresetContainer
+                    })
+                    AddCorner(PresetBtn, 4)
+                    AddStroke(PresetBtn, theme.Border, 1)
+                    
+                    PresetBtn.MouseButton1Click:Connect(function()
+                        h, s, v = RGBtoHSV(presetColor)
+                        SVCursor.Position = UDim2.new(s, -6, 1 - v, -6)
+                        HueCursor.Position = UDim2.new(0, -2, h, -3)
+                        UpdateColor()
+                    end)
                 end
                 
                 -- SV Picker interaction
@@ -1628,17 +1994,10 @@ function SkeetUI:CreateWindow(options)
                 SVPicker.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         svDragging = true
-                    end
-                end)
-                
-                UserInputService.InputChanged:Connect(function(input)
-                    if svDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
                         local relativeX = math.clamp((input.Position.X - SVPicker.AbsolutePosition.X) / SVPicker.AbsoluteSize.X, 0, 1)
                         local relativeY = math.clamp((input.Position.Y - SVPicker.AbsolutePosition.Y) / SVPicker.AbsoluteSize.Y, 0, 1)
-                        
                         s = relativeX
                         v = 1 - relativeY
-                        
                         SVCursor.Position = UDim2.new(s, -6, 1 - v, -6)
                         UpdateColor()
                     end
@@ -1650,13 +2009,7 @@ function SkeetUI:CreateWindow(options)
                 HueSlider.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         hueDragging = true
-                    end
-                end)
-                
-                UserInputService.InputChanged:Connect(function(input)
-                    if hueDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
                         local relativeY = math.clamp((input.Position.Y - HueSlider.AbsolutePosition.Y) / HueSlider.AbsoluteSize.Y, 0, 1)
-                        
                         h = relativeY
                         HueCursor.Position = UDim2.new(0, -2, h, -3)
                         UpdateColor()
@@ -1666,19 +2019,36 @@ function SkeetUI:CreateWindow(options)
                 -- Alpha Slider interaction
                 local alphaDragging = false
                 
-                AlphaSlider.InputBegan:Connect(function(input)
+                AlphaContainer.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         alphaDragging = true
+                        local relativeX = math.clamp((input.Position.X - AlphaContainer.AbsolutePosition.X) / AlphaContainer.AbsoluteSize.X, 0, 1)
+                        currentAlpha = relativeX
+                        AlphaCursor.Position = UDim2.new(currentAlpha, -3, 0, -2)
+                        UpdateColor()
                     end
                 end)
                 
                 UserInputService.InputChanged:Connect(function(input)
-                    if alphaDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                        local relativeX = math.clamp((input.Position.X - AlphaSlider.AbsolutePosition.X) / AlphaSlider.AbsoluteSize.X, 0, 1)
-                        
-                        currentAlpha = relativeX
-                        AlphaCursor.Position = UDim2.new(currentAlpha, -3, 0, -2)
-                        UpdateColor()
+                    if input.UserInputType == Enum.UserInputType.MouseMovement then
+                        if svDragging then
+                            local relativeX = math.clamp((input.Position.X - SVPicker.AbsolutePosition.X) / SVPicker.AbsoluteSize.X, 0, 1)
+                            local relativeY = math.clamp((input.Position.Y - SVPicker.AbsolutePosition.Y) / SVPicker.AbsoluteSize.Y, 0, 1)
+                            s = relativeX
+                            v = 1 - relativeY
+                            SVCursor.Position = UDim2.new(s, -6, 1 - v, -6)
+                            UpdateColor()
+                        elseif hueDragging then
+                            local relativeY = math.clamp((input.Position.Y - HueSlider.AbsolutePosition.Y) / HueSlider.AbsoluteSize.Y, 0, 1)
+                            h = relativeY
+                            HueCursor.Position = UDim2.new(0, -2, h, -3)
+                            UpdateColor()
+                        elseif alphaDragging then
+                            local relativeX = math.clamp((input.Position.X - AlphaContainer.AbsolutePosition.X) / AlphaContainer.AbsoluteSize.X, 0, 1)
+                            currentAlpha = relativeX
+                            AlphaCursor.Position = UDim2.new(currentAlpha, -3, 0, -2)
+                            UpdateColor()
+                        end
                     end
                 end)
                 
@@ -1703,7 +2073,7 @@ function SkeetUI:CreateWindow(options)
                     
                     if opened then
                         PickerPanel.Visible = true
-                        Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 180)}, 0.25)
+                        Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 200)}, 0.25)
                     else
                         Tween(ColorFrame, {Size = UDim2.new(1, 0, 0, 28)}, 0.25)
                         task.wait(0.25)
@@ -1754,7 +2124,7 @@ function SkeetUI:CreateWindow(options)
             -- SEPARATOR COMPONENT
             -- ═══════════════════════════════════════════
             function Section:CreateSeparator()
-                local Separator = Create("Frame", {
+                Create("Frame", {
                     Name = "Separator",
                     Size = UDim2.new(1, 0, 0, 1),
                     BackgroundColor3 = theme.Border,
@@ -1769,7 +2139,6 @@ function SkeetUI:CreateWindow(options)
         
         table.insert(Window.Tabs, Tab)
         
-        -- Auto-select first tab
         if #Window.Tabs == 1 then
             SelectTab()
         end
@@ -1778,9 +2147,9 @@ function SkeetUI:CreateWindow(options)
     end
     
     -- Entry animation
-    MainFrame.Size = UDim2.new(0, 0, 0, 0)
-    MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Tween(MainFrame, {
+    MainContainer.Size = UDim2.new(0, 0, 0, 0)
+    MainContainer.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Tween(MainContainer, {
         Size = size,
         Position = UDim2.new(0.5, -size.X.Offset/2, 0.5, -size.Y.Offset/2)
     }, 0.4, Enum.EasingStyle.Back)
