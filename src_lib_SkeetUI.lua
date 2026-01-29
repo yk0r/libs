@@ -234,7 +234,7 @@ function SkeetUI:CreateWatermark(options)
     
     Watermark.Gui = ScreenGui
     
-    -- Main Container
+    -- Main Container (with ClipsDescendants to clip gradient line to corners)
     local Container = Create("Frame", {
         Name = "WatermarkContainer",
         Size = UDim2.new(0, 0, 0, 24),
@@ -242,12 +242,13 @@ function SkeetUI:CreateWatermark(options)
         Position = position,
         BackgroundColor3 = theme.Background,
         BorderSizePixel = 0,
+        ClipsDescendants = true,
         Parent = ScreenGui
     })
     AddCorner(Container, 4)
     AddStroke(Container, theme.Border, 1)
     
-    -- Top gradient line (matches window corner radius)
+    -- Top gradient line (no corner needed - clipped by container)
     local TopLine = Create("Frame", {
         Name = "TopLine",
         Size = UDim2.new(1, 0, 0, 2),
@@ -255,21 +256,6 @@ function SkeetUI:CreateWatermark(options)
         BackgroundColor3 = Color3.new(1, 1, 1),
         BorderSizePixel = 0,
         Parent = Container
-    })
-    
-    -- Use UICorner to match container corners
-    local TopLineCorner = Create("UICorner", {
-        CornerRadius = UDim.new(0, 4),
-        Parent = TopLine
-    })
-    
-    -- Cover bottom of top line rounded corners
-    local TopLineCover = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 2),
-        Position = UDim2.new(0, 0, 1, -1),
-        BackgroundColor3 = Color3.new(1, 1, 1),
-        BorderSizePixel = 0,
-        Parent = TopLine
     })
     
     local TopGradient = Create("UIGradient", {
@@ -282,7 +268,8 @@ function SkeetUI:CreateWatermark(options)
     
     -- Content holder
     local ContentHolder = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, -2),
+        Size = UDim2.new(0, 0, 1, -2),
+        AutomaticSize = Enum.AutomaticSize.X,
         Position = UDim2.new(0, 0, 0, 2),
         BackgroundTransparency = 1,
         Parent = Container
@@ -449,6 +436,13 @@ function SkeetUI:CreateWindow(options)
     local size = options.Size or UDim2.new(0, 580, 0, 460)
     local theme = Themes[options.Theme or "Dark"]
     
+    -- Customizable status bar options
+    local statusBarOptions = options.StatusBar or {}
+    local statusBarText = statusBarOptions.Text or "ready"
+    local statusBarBuild = statusBarOptions.Build or ("build: " .. os.date("%Y%m%d"))
+    local statusBarVersion = statusBarOptions.Version or "v2.0.0"
+    local statusBarVisible = statusBarOptions.Visible ~= false
+    
     local Window = {}
     Window.Tabs = {}
     Window.Theme = theme
@@ -464,7 +458,7 @@ function SkeetUI:CreateWindow(options)
     
     Window.Gui = ScreenGui
     
-    -- Main Container (with clipping for rounded corners)
+    -- Main Container (with clipping for rounded corners - clips gradient line)
     local MainContainer = Create("Frame", {
         Name = "MainContainer",
         Size = size,
@@ -479,22 +473,10 @@ function SkeetUI:CreateWindow(options)
     -- Main border stroke
     local MainStroke = AddStroke(MainContainer, theme.Border, 1)
     
-    -- Outer glow
-    local OuterGlow = Create("ImageLabel", {
-        Name = "OuterGlow",
-        Size = UDim2.new(1, 30, 1, 30),
-        Position = UDim2.new(0, -15, 0, -15),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://5554236805",
-        ImageColor3 = theme.Accent,
-        ImageTransparency = 0.85,
-        ScaleType = Enum.ScaleType.Slice,
-        SliceCenter = Rect.new(23, 23, 277, 277),
-        ZIndex = 0,
-        Parent = MainContainer
-    })
+    -- Outer glow (outside of clipping - need separate container)
+    -- We'll skip this as it gets clipped, or move it outside
     
-    -- Top gradient line (inside container, clipped by corner)
+    -- Top gradient line (inside container, automatically clipped by corner)
     local TopGradientLine = Create("Frame", {
         Name = "TopGradientLine",
         Size = UDim2.new(1, 0, 0, 2),
@@ -513,7 +495,7 @@ function SkeetUI:CreateWindow(options)
         Parent = TopGradientLine
     })
     
-    -- Bottom Status Bar
+    -- Bottom Status Bar (no corner needed - clipped by container)
     local StatusBar = Create("Frame", {
         Name = "StatusBar",
         Size = UDim2.new(1, 0, 0, 22),
@@ -521,6 +503,7 @@ function SkeetUI:CreateWindow(options)
         BackgroundColor3 = theme.Tertiary,
         BorderSizePixel = 0,
         ZIndex = 10,
+        Visible = statusBarVisible,
         Parent = MainContainer
     })
     
@@ -548,7 +531,7 @@ function SkeetUI:CreateWindow(options)
         Size = UDim2.new(0, 80, 1, 0),
         Position = UDim2.new(0, 24, 0, 0),
         BackgroundTransparency = 1,
-        Text = "ready",
+        Text = statusBarText,
         Font = Enum.Font.Code,
         TextSize = 10,
         TextColor3 = theme.TextDim,
@@ -561,7 +544,7 @@ function SkeetUI:CreateWindow(options)
         Size = UDim2.new(0, 200, 1, 0),
         Position = UDim2.new(0.5, -100, 0, 0),
         BackgroundTransparency = 1,
-        Text = "build: " .. os.date("%Y%m%d"),
+        Text = statusBarBuild,
         Font = Enum.Font.Code,
         TextSize = 10,
         TextColor3 = theme.TextDark,
@@ -573,13 +556,30 @@ function SkeetUI:CreateWindow(options)
         Size = UDim2.new(0, 80, 1, 0),
         Position = UDim2.new(1, -92, 0, 0),
         BackgroundTransparency = 1,
-        Text = "v2.0.0",
+        Text = statusBarVersion,
         Font = Enum.Font.Code,
         TextSize = 10,
         TextColor3 = theme.TextDim,
         TextXAlignment = Enum.TextXAlignment.Right,
         Parent = StatusBar
     })
+    
+    -- StatusBar update function
+    function Window:SetStatusBar(opts)
+        if opts.Text then StatusText.Text = opts.Text end
+        if opts.Build then BuildText.Text = opts.Build end
+        if opts.Version then VersionText.Text = opts.Version end
+        if opts.Status then
+            local statusColors = {
+                ready = theme.Success,
+                loading = theme.Warning,
+                error = theme.Error,
+                offline = theme.TextDark
+            }
+            StatusDot.BackgroundColor3 = statusColors[opts.Status] or theme.Success
+        end
+        if opts.Visible ~= nil then StatusBar.Visible = opts.Visible end
+    end
     
     -- Header
     local Header = Create("Frame", {
@@ -1378,13 +1378,13 @@ function SkeetUI:CreateWindow(options)
             end
             
             -- ═══════════════════════════════════════════
-            -- DROPDOWN COMPONENT
+            -- DROPDOWN COMPONENT (FIXED)
             -- ═══════════════════════════════════════════
             function Section:CreateDropdown(options)
                 options = options or {}
                 local dropdownName = options.Name or "Dropdown"
                 local optionsList = options.Options or {}
-                local default = options.Default or (optionsList[1] or "")
+                local default = options.Default or (optionsList[1] or "Select...")
                 local callback = options.Callback or function() end
                 
                 local selected = default
@@ -1396,6 +1396,7 @@ function SkeetUI:CreateWindow(options)
                     BackgroundColor3 = theme.Surface,
                     ClipsDescendants = true,
                     BorderSizePixel = 0,
+                    ZIndex = 5,
                     Parent = SectionContent
                 })
                 AddCorner(DropdownFrame, 4)
@@ -1409,6 +1410,7 @@ function SkeetUI:CreateWindow(options)
                     TextSize = 11,
                     TextColor3 = theme.TextDim,
                     TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 5,
                     Parent = DropdownFrame
                 })
                 
@@ -1418,6 +1420,7 @@ function SkeetUI:CreateWindow(options)
                     Position = UDim2.new(0, 8, 0, 22),
                     BackgroundColor3 = theme.Tertiary,
                     BorderSizePixel = 0,
+                    ZIndex = 5,
                     Parent = DropdownFrame
                 })
                 AddCorner(SelectedFrame, 4)
@@ -1432,6 +1435,7 @@ function SkeetUI:CreateWindow(options)
                     TextSize = 11,
                     TextColor3 = theme.Text,
                     TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 5,
                     Parent = SelectedFrame
                 })
                 
@@ -1443,29 +1447,37 @@ function SkeetUI:CreateWindow(options)
                     Font = Enum.Font.Gotham,
                     TextSize = 8,
                     TextColor3 = theme.TextDim,
+                    ZIndex = 5,
                     Parent = SelectedFrame
                 })
                 
+                -- Options container - NOT clipped
                 local OptionsContainer = Create("Frame", {
                     Name = "Options",
                     Size = UDim2.new(1, -16, 0, 0),
                     Position = UDim2.new(0, 8, 0, 50),
                     BackgroundTransparency = 1,
-                    ClipsDescendants = true,
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    ZIndex = 10,
                     Parent = DropdownFrame
                 })
                 
                 local OptionsLayout = Create("UIListLayout", {
                     Padding = UDim.new(0, 2),
+                    SortOrder = Enum.SortOrder.LayoutOrder,
                     Parent = OptionsContainer
                 })
                 
-                local function CreateOption(optionText)
+                local optionButtons = {}
+                
+                local function CreateOption(optionText, layoutOrder)
                     local OptionButton = Create("TextButton", {
                         Name = optionText,
                         Size = UDim2.new(1, 0, 0, 24),
                         BackgroundColor3 = theme.Tertiary,
                         Text = "",
+                        LayoutOrder = layoutOrder,
+                        ZIndex = 11,
                         Parent = OptionsContainer
                     })
                     AddCorner(OptionButton, 4)
@@ -1479,11 +1491,12 @@ function SkeetUI:CreateWindow(options)
                         TextSize = 11,
                         TextColor3 = theme.TextDim,
                         TextXAlignment = Enum.TextXAlignment.Left,
+                        ZIndex = 11,
                         Parent = OptionButton
                     })
                     
                     OptionButton.MouseEnter:Connect(function()
-                        Tween(OptionButton, {BackgroundColor3 = theme.Surface}, 0.15)
+                        Tween(OptionButton, {BackgroundColor3 = theme.Accent}, 0.15)
                         Tween(OptionLabel, {TextColor3 = theme.Text}, 0.15)
                     end)
                     
@@ -1500,25 +1513,31 @@ function SkeetUI:CreateWindow(options)
                         Tween(Arrow, {Rotation = 0}, 0.2)
                         callback(optionText)
                     end)
+                    
+                    table.insert(optionButtons, OptionButton)
+                    return OptionButton
                 end
                 
-                for _, opt in ipairs(optionsList) do
-                    CreateOption(opt)
+                -- Create all options
+                for i, opt in ipairs(optionsList) do
+                    CreateOption(opt, i)
                 end
                 
+                -- Toggle button (covers header area only)
                 local DropdownButton = Create("TextButton", {
                     Size = UDim2.new(1, 0, 0, 50),
                     BackgroundTransparency = 1,
                     Text = "",
+                    ZIndex = 6,
                     Parent = DropdownFrame
                 })
                 
                 DropdownButton.MouseButton1Click:Connect(function()
                     opened = not opened
-                    local optionsHeight = #optionsList * 26
+                    local optionsHeight = #optionsList * 26 + 4
                     
                     if opened then
-                        Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 54 + optionsHeight)}, 0.2)
+                        Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 50 + optionsHeight)}, 0.25, Enum.EasingStyle.Quart)
                         Tween(Arrow, {Rotation = 180}, 0.2)
                     else
                         Tween(DropdownFrame, {Size = UDim2.new(1, 0, 0, 50)}, 0.2)
@@ -1538,14 +1557,22 @@ function SkeetUI:CreateWindow(options)
                         return selected
                     end,
                     Refresh = function(newOptions)
-                        for _, child in ipairs(OptionsContainer:GetChildren()) do
-                            if child:IsA("TextButton") then
-                                child:Destroy()
-                            end
+                        -- Clear old options
+                        for _, btn in ipairs(optionButtons) do
+                            btn:Destroy()
                         end
+                        optionButtons = {}
+                        
+                        -- Add new options
                         optionsList = newOptions
-                        for _, opt in ipairs(optionsList) do
-                            CreateOption(opt)
+                        for i, opt in ipairs(optionsList) do
+                            CreateOption(opt, i)
+                        end
+                        
+                        -- Reset selection if current not in list
+                        if not table.find(optionsList, selected) then
+                            selected = optionsList[1] or "Select..."
+                            SelectedLabel.Text = selected
                         end
                     end
                 }
