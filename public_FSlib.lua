@@ -60,7 +60,6 @@ local Config = {
     FontBold = Enum.Font.Code,
     ToggleKey = Enum.KeyCode.RightControl,
     AnimationSpeed = 0.15,
-    CornerRadius = 0,
 }
 
 -- Utility Functions
@@ -166,7 +165,7 @@ function FSlib:Notify(options)
     local title = options.Title or "Notification"
     local message = options.Message or ""
     local duration = options.Duration or 3
-    local notifyType = options.Type or "Info" -- Info, Success, Warning, Error
+    local notifyType = options.Type or "Info"
     
     local colors = {
         Info = Config.Theme.TextDark,
@@ -243,14 +242,11 @@ function FSlib:Notify(options)
         }),
     })
     
-    -- Animate in
     Tween(notification, { Position = UDim2.new(0, 0, 0, 0) }, 0.3)
     
-    -- Progress bar animation
     local progress = notification:FindFirstChild("Progress")
     Tween(progress, { Size = UDim2.new(0, 0, 0, 2) }, duration)
     
-    -- Close button
     local closeBtn = notification:FindFirstChild("Close")
     closeBtn.MouseButton1Click:Connect(function()
         Tween(notification, { Position = UDim2.new(1, 0, 0, 0) }, 0.3)
@@ -259,7 +255,6 @@ function FSlib:Notify(options)
         end)
     end)
     
-    -- Auto close
     task.delay(duration, function()
         if notification and notification.Parent then
             Tween(notification, { Position = UDim2.new(1, 0, 0, 0) }, 0.3)
@@ -392,9 +387,8 @@ function FSlib:CreateWatermark(options)
                     table.insert(parts, string.format('<font color="rgb(150,150,150)">%s</font>', os.date("%H:%M:%S")))
                 end
                 
-                content.Text = table.concat(parts, " <font color=\"rgb(60,60,60)\">|</font> ")
+                content.Text = table.concat(parts, ' <font color="rgb(60,60,60)">|</font> ')
                 
-                -- Auto resize
                 local textSize = GetTextSize(content.ContentText, 11, Config.Font)
                 watermark.Size = UDim2.new(0, textSize.X + 24, 0, 26)
             end
@@ -446,30 +440,29 @@ function FSlib:CreateWindow(options)
         Size = size,
         ClipsDescendants = true,
     }, {
-        -- Border
         Create("Frame", {
-            Name = "Border",
+            Name = "TopBorder",
             BackgroundColor3 = Config.Theme.Border,
             BorderSizePixel = 0,
             Size = UDim2.new(1, 0, 0, 1),
             Position = UDim2.new(0, 0, 0, 0),
         }),
         Create("Frame", {
-            Name = "Border",
+            Name = "BottomBorder",
             BackgroundColor3 = Config.Theme.Border,
             BorderSizePixel = 0,
             Size = UDim2.new(1, 0, 0, 1),
             Position = UDim2.new(0, 0, 1, -1),
         }),
         Create("Frame", {
-            Name = "Border",
+            Name = "LeftBorder",
             BackgroundColor3 = Config.Theme.Border,
             BorderSizePixel = 0,
             Size = UDim2.new(0, 1, 1, 0),
             Position = UDim2.new(0, 0, 0, 0),
         }),
         Create("Frame", {
-            Name = "Border",
+            Name = "RightBorder",
             BackgroundColor3 = Config.Theme.Border,
             BorderSizePixel = 0,
             Size = UDim2.new(0, 1, 1, 0),
@@ -492,7 +485,6 @@ function FSlib:CreateWindow(options)
             Size = UDim2.new(1, 0, 0, 1),
             Position = UDim2.new(0, 0, 1, -1),
         }),
-        -- Logo
         Create("Frame", {
             Name = "Logo",
             BackgroundTransparency = 1,
@@ -519,7 +511,6 @@ function FSlib:CreateWindow(options)
                 Size = UDim2.new(0, 2, 0, 12),
             }),
         }),
-        -- Title
         Create("TextLabel", {
             Name = "Title",
             BackgroundTransparency = 1,
@@ -542,7 +533,6 @@ function FSlib:CreateWindow(options)
             TextSize = 10,
             TextXAlignment = Enum.TextXAlignment.Left,
         }),
-        -- Controls
         Create("TextButton", {
             Name = "Minimize",
             BackgroundTransparency = 1,
@@ -668,6 +658,7 @@ function FSlib:CreateWindow(options)
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 0, 72),
         Size = UDim2.new(1, 0, 1, -100),
+        ClipsDescendants = true,
     })
     
     -- Footer
@@ -722,7 +713,6 @@ function FSlib:CreateWindow(options)
     function Window:CreateTab(options)
         options = options or {}
         local name = options.Name or "Tab"
-        local icon = options.Icon or ""
         
         local Tab = {
             Sections = {},
@@ -756,7 +746,7 @@ function FSlib:CreateWindow(options)
             }),
         })
         
-        -- Tab Content
+        -- Tab Content - Using a Frame with two columns
         local tabContent = Create("ScrollingFrame", {
             Name = name .. "_Content",
             Parent = contentArea,
@@ -768,24 +758,76 @@ function FSlib:CreateWindow(options)
             ScrollBarImageColor3 = Config.Theme.Border,
             Visible = false,
             AutomaticCanvasSize = Enum.AutomaticSize.Y,
-        }, {
-            Create("UIPadding", {
-                PaddingTop = UDim.new(0, 8),
-                PaddingBottom = UDim.new(0, 8),
-                PaddingLeft = UDim.new(0, 8),
-                PaddingRight = UDim.new(0, 8),
-            }),
-            Create("UIListLayout", {
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 8),
-                FillDirection = Enum.FillDirection.Horizontal,
-                HorizontalAlignment = Enum.HorizontalAlignment.Left,
-                VerticalAlignment = Enum.VerticalAlignment.Top,
-            }),
+        })
+        
+        -- Padding for content
+        Create("UIPadding", {
+            Parent = tabContent,
+            PaddingTop = UDim.new(0, 8),
+            PaddingBottom = UDim.new(0, 8),
+            PaddingLeft = UDim.new(0, 8),
+            PaddingRight = UDim.new(0, 8),
+        })
+        
+        -- Container for columns
+        local columnsContainer = Create("Frame", {
+            Name = "ColumnsContainer",
+            Parent = tabContent,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+        })
+        
+        -- Left Column
+        local leftColumn = Create("Frame", {
+            Name = "LeftColumn",
+            Parent = columnsContainer,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, 0),
+            Size = UDim2.new(0.5, -4, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+        })
+        
+        Create("UIListLayout", {
+            Parent = leftColumn,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 8),
+        })
+        
+        -- Right Column
+        local rightColumn = Create("Frame", {
+            Name = "RightColumn",
+            Parent = columnsContainer,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0.5, 4, 0, 0),
+            Size = UDim2.new(0.5, -4, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+        })
+        
+        Create("UIListLayout", {
+            Parent = rightColumn,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 8),
         })
         
         Tab.Button = tabButton
         Tab.Content = tabContent
+        Tab.LeftColumn = leftColumn
+        Tab.RightColumn = rightColumn
+        Tab.ColumnsContainer = columnsContainer
+        
+        -- Update container height based on column heights
+        local function updateContainerHeight()
+            task.defer(function()
+                local leftHeight = leftColumn.AbsoluteSize.Y
+                local rightHeight = rightColumn.AbsoluteSize.Y
+                local maxHeight = math.max(leftHeight, rightHeight)
+                columnsContainer.Size = UDim2.new(1, 0, 0, maxHeight)
+            end)
+        end
+        
+        leftColumn:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateContainerHeight)
+        rightColumn:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateContainerHeight)
         
         -- Select tab function
         local function selectTab()
@@ -832,44 +874,9 @@ function FSlib:CreateWindow(options)
             }
             table.insert(Tab.Sections, Section)
             
-            -- Find or create column container
-            local leftColumn = tabContent:FindFirstChild("LeftColumn")
-            local rightColumn = tabContent:FindFirstChild("RightColumn")
-            
-            if not leftColumn then
-                leftColumn = Create("Frame", {
-                    Name = "LeftColumn",
-                    Parent = tabContent,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(0.5, -4, 0, 0),
-                    AutomaticSize = Enum.AutomaticSize.Y,
-                    LayoutOrder = 1,
-                }, {
-                    Create("UIListLayout", {
-                        SortOrder = Enum.SortOrder.LayoutOrder,
-                        Padding = UDim.new(0, 8),
-                    }),
-                })
-            end
-            
-            if not rightColumn then
-                rightColumn = Create("Frame", {
-                    Name = "RightColumn",
-                    Parent = tabContent,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(0.5, -4, 0, 0),
-                    AutomaticSize = Enum.AutomaticSize.Y,
-                    LayoutOrder = 2,
-                }, {
-                    Create("UIListLayout", {
-                        SortOrder = Enum.SortOrder.LayoutOrder,
-                        Padding = UDim.new(0, 8),
-                    }),
-                })
-            end
-            
             local parentColumn = side == "Left" and leftColumn or rightColumn
             
+            -- Section Frame
             local sectionFrame = Create("Frame", {
                 Name = sectionName,
                 Parent = parentColumn,
@@ -877,11 +884,6 @@ function FSlib:CreateWindow(options)
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
                 LayoutOrder = #Tab.Sections,
-            }, {
-                Create("UIListLayout", {
-                    SortOrder = Enum.SortOrder.LayoutOrder,
-                    Padding = UDim.new(0, 0),
-                }),
             })
             
             -- Section Header
@@ -891,79 +893,100 @@ function FSlib:CreateWindow(options)
                 BackgroundColor3 = Config.Theme.Surface,
                 BorderSizePixel = 0,
                 Size = UDim2.new(1, 0, 0, 28),
-                LayoutOrder = 1,
-            }, {
-                Create("Frame", {
-                    Name = "Accent",
-                    BackgroundColor3 = Config.Theme.Primary,
-                    BorderSizePixel = 0,
-                    Size = UDim2.new(0, 3, 1, 0),
-                }),
-                Create("TextLabel", {
-                    Name = "Title",
-                    BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 12, 0, 0),
-                    Size = UDim2.new(1, -12, 1, 0),
-                    Font = Config.FontBold,
-                    Text = string.upper(sectionName),
-                    TextColor3 = Config.Theme.TextDark,
-                    TextSize = 10,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                }),
-                Create("Frame", {
-                    Name = "Border",
-                    BackgroundColor3 = Config.Theme.Border,
-                    BorderSizePixel = 0,
-                    Size = UDim2.new(1, 0, 0, 1),
-                    Position = UDim2.new(0, 0, 1, -1),
-                }),
             })
             
-            -- Section Content
+            Create("Frame", {
+                Name = "Accent",
+                Parent = sectionHeader,
+                BackgroundColor3 = Config.Theme.Primary,
+                BorderSizePixel = 0,
+                Size = UDim2.new(0, 3, 1, 0),
+            })
+            
+            Create("TextLabel", {
+                Name = "Title",
+                Parent = sectionHeader,
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 12, 0, 0),
+                Size = UDim2.new(1, -12, 1, 0),
+                Font = Config.FontBold,
+                Text = string.upper(sectionName),
+                TextColor3 = Config.Theme.TextDark,
+                TextSize = 10,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            
+            Create("Frame", {
+                Name = "Border",
+                Parent = sectionHeader,
+                BackgroundColor3 = Config.Theme.Border,
+                BorderSizePixel = 0,
+                Size = UDim2.new(1, 0, 0, 1),
+                Position = UDim2.new(0, 0, 1, -1),
+            })
+            
+            -- Section Content Container
             local sectionContent = Create("Frame", {
                 Name = "Content",
                 Parent = sectionFrame,
                 BackgroundColor3 = Config.Theme.Background,
                 BackgroundTransparency = 0.3,
                 BorderSizePixel = 0,
+                Position = UDim2.new(0, 0, 0, 28),
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
-                LayoutOrder = 2,
-            }, {
-                Create("Frame", {
-                    Name = "LeftBorder",
-                    BackgroundColor3 = Config.Theme.Border,
-                    BorderSizePixel = 0,
-                    Size = UDim2.new(0, 1, 1, 0),
-                }),
-                Create("Frame", {
-                    Name = "RightBorder",
-                    BackgroundColor3 = Config.Theme.Border,
-                    BorderSizePixel = 0,
-                    Size = UDim2.new(0, 1, 1, 0),
-                    Position = UDim2.new(1, -1, 0, 0),
-                }),
-                Create("Frame", {
-                    Name = "BottomBorder",
-                    BackgroundColor3 = Config.Theme.Border,
-                    BorderSizePixel = 0,
-                    Size = UDim2.new(1, 0, 0, 1),
-                    Position = UDim2.new(0, 0, 1, -1),
-                }),
-                Create("UIListLayout", {
-                    SortOrder = Enum.SortOrder.LayoutOrder,
-                    Padding = UDim.new(0, 0),
-                }),
-                Create("UIPadding", {
-                    PaddingLeft = UDim.new(0, 1),
-                    PaddingRight = UDim.new(0, 1),
-                    PaddingTop = UDim.new(0, 4),
-                    PaddingBottom = UDim.new(0, 4),
-                }),
+            })
+            
+            -- Borders for content
+            Create("Frame", {
+                Name = "LeftBorder",
+                Parent = sectionContent,
+                BackgroundColor3 = Config.Theme.Border,
+                BorderSizePixel = 0,
+                Size = UDim2.new(0, 1, 1, 0),
+            })
+            
+            Create("Frame", {
+                Name = "RightBorder",
+                Parent = sectionContent,
+                BackgroundColor3 = Config.Theme.Border,
+                BorderSizePixel = 0,
+                Size = UDim2.new(0, 1, 1, 0),
+                Position = UDim2.new(1, -1, 0, 0),
+            })
+            
+            Create("Frame", {
+                Name = "BottomBorder",
+                Parent = sectionContent,
+                BackgroundColor3 = Config.Theme.Border,
+                BorderSizePixel = 0,
+                Size = UDim2.new(1, 0, 0, 1),
+                Position = UDim2.new(0, 0, 1, -1),
+            })
+            
+            -- Elements holder
+            local elementsHolder = Create("Frame", {
+                Name = "ElementsHolder",
+                Parent = sectionContent,
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 1, 0, 4),
+                Size = UDim2.new(1, -2, 0, 0),
+                AutomaticSize = Enum.AutomaticSize.Y,
+            })
+            
+            Create("UIListLayout", {
+                Parent = elementsHolder,
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 0),
+            })
+            
+            Create("UIPadding", {
+                Parent = elementsHolder,
+                PaddingBottom = UDim.new(0, 4),
             })
             
             Section.Frame = sectionFrame
-            Section.Content = sectionContent
+            Section.Content = elementsHolder
             
             --[[ 
                 ==========================================
@@ -985,60 +1008,61 @@ function FSlib:CreateWindow(options)
                 
                 local toggleFrame = Create("Frame", {
                     Name = toggleName,
-                    Parent = sectionContent,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 32),
-                }, {
-                    Create("TextLabel", {
-                        Name = "Label",
-                        BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 28, 0, 0),
-                        Size = UDim2.new(1, -60, 1, 0),
-                        Font = Config.Font,
-                        Text = toggleName,
-                        TextColor3 = default and Config.Theme.Text or Config.Theme.TextDark,
-                        TextSize = 11,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                    }),
-                    Create("TextButton", {
-                        Name = "Button",
-                        BackgroundColor3 = default and Config.Theme.Primary or Config.Theme.Border,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(0, 8, 0.5, -6),
-                        Size = UDim2.new(0, 12, 0, 12),
-                        Text = "",
-                        AutoButtonColor = false,
-                    }, {
-                        Create("ImageLabel", {
-                            Name = "Check",
-                            BackgroundTransparency = 1,
-                            Position = UDim2.new(0.5, -4, 0.5, -4),
-                            Size = UDim2.new(0, 8, 0, 8),
-                            Image = "rbxassetid://3926305904",
-                            ImageRectOffset = Vector2.new(312, 4),
-                            ImageRectSize = Vector2.new(24, 24),
-                            ImageColor3 = Config.Theme.Text,
-                            ImageTransparency = default and 0 or 1,
-                        }),
-                    }),
+                    LayoutOrder = #Section.Elements,
                 })
                 
-                local button = toggleFrame:FindFirstChild("Button")
-                local check = button:FindFirstChild("Check")
-                local label = toggleFrame:FindFirstChild("Label")
+                local checkButton = Create("TextButton", {
+                    Name = "Button",
+                    Parent = toggleFrame,
+                    BackgroundColor3 = default and Config.Theme.Primary or Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 8, 0.5, -6),
+                    Size = UDim2.new(0, 12, 0, 12),
+                    Text = "",
+                    AutoButtonColor = false,
+                })
+                
+                local checkIcon = Create("ImageLabel", {
+                    Name = "Check",
+                    Parent = checkButton,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0.5, -4, 0.5, -4),
+                    Size = UDim2.new(0, 8, 0, 8),
+                    Image = "rbxassetid://3926305904",
+                    ImageRectOffset = Vector2.new(312, 4),
+                    ImageRectSize = Vector2.new(24, 24),
+                    ImageColor3 = Config.Theme.Text,
+                    ImageTransparency = default and 0 or 1,
+                })
+                
+                local label = Create("TextLabel", {
+                    Name = "Label",
+                    Parent = toggleFrame,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 28, 0, 0),
+                    Size = UDim2.new(1, -36, 1, 0),
+                    Font = Config.Font,
+                    Text = toggleName,
+                    TextColor3 = default and Config.Theme.Text or Config.Theme.TextDark,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                })
                 
                 local function updateToggle(value)
                     Toggle.Value = value
                     FSlib.Flags[flag] = value
                     
-                    Tween(button, { BackgroundColor3 = value and Config.Theme.Primary or Config.Theme.Border }, 0.15)
-                    Tween(check, { ImageTransparency = value and 0 or 1 }, 0.15)
+                    Tween(checkButton, { BackgroundColor3 = value and Config.Theme.Primary or Config.Theme.Border }, 0.15)
+                    Tween(checkIcon, { ImageTransparency = value and 0 or 1 }, 0.15)
                     Tween(label, { TextColor3 = value and Config.Theme.Text or Config.Theme.TextDark }, 0.15)
                     
                     callback(value)
                 end
                 
-                button.MouseButton1Click:Connect(function()
+                checkButton.MouseButton1Click:Connect(function()
                     updateToggle(not Toggle.Value)
                 end)
                 
@@ -1083,68 +1107,73 @@ function FSlib:CreateWindow(options)
                 
                 local sliderFrame = Create("Frame", {
                     Name = sliderName,
-                    Parent = sectionContent,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 40),
-                }, {
-                    Create("TextLabel", {
-                        Name = "Label",
-                        BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 8, 0, 4),
-                        Size = UDim2.new(0.5, -8, 0, 16),
-                        Font = Config.Font,
-                        Text = sliderName,
-                        TextColor3 = Config.Theme.TextDark,
-                        TextSize = 11,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                    }),
-                    Create("TextLabel", {
-                        Name = "Value",
-                        BackgroundTransparency = 1,
-                        Position = UDim2.new(0.5, 0, 0, 4),
-                        Size = UDim2.new(0.5, -8, 0, 16),
-                        Font = Config.Font,
-                        Text = tostring(default) .. suffix,
-                        TextColor3 = Config.Theme.Primary,
-                        TextSize = 11,
-                        TextXAlignment = Enum.TextXAlignment.Right,
-                    }),
-                    Create("Frame", {
-                        Name = "Track",
-                        BackgroundColor3 = Config.Theme.Border,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(0, 8, 0, 26),
-                        Size = UDim2.new(1, -16, 0, 4),
-                    }, {
-                        Create("Frame", {
-                            Name = "Fill",
-                            BackgroundColor3 = Config.Theme.Primary,
-                            BorderSizePixel = 0,
-                            Size = UDim2.new((default - min) / (max - min), 0, 1, 0),
-                        }),
-                        Create("Frame", {
-                            Name = "Thumb",
-                            BackgroundColor3 = Config.Theme.Surface,
-                            BorderSizePixel = 0,
-                            Position = UDim2.new((default - min) / (max - min), -5, 0.5, -5),
-                            Size = UDim2.new(0, 10, 0, 10),
-                            ZIndex = 2,
-                        }, {
-                            Create("Frame", {
-                                Name = "Inner",
-                                BackgroundColor3 = Config.Theme.Primary,
-                                BorderSizePixel = 0,
-                                Position = UDim2.new(0, 2, 0, 2),
-                                Size = UDim2.new(1, -4, 1, -4),
-                            }),
-                        }),
-                    }),
+                    LayoutOrder = #Section.Elements,
                 })
                 
-                local track = sliderFrame:FindFirstChild("Track")
-                local fill = track:FindFirstChild("Fill")
-                local thumb = track:FindFirstChild("Thumb")
-                local valueLabel = sliderFrame:FindFirstChild("Value")
+                Create("TextLabel", {
+                    Name = "Label",
+                    Parent = sliderFrame,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 8, 0, 4),
+                    Size = UDim2.new(0.5, -8, 0, 16),
+                    Font = Config.Font,
+                    Text = sliderName,
+                    TextColor3 = Config.Theme.TextDark,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                })
+                
+                local valueLabel = Create("TextLabel", {
+                    Name = "Value",
+                    Parent = sliderFrame,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0.5, 0, 0, 4),
+                    Size = UDim2.new(0.5, -8, 0, 16),
+                    Font = Config.Font,
+                    Text = tostring(default) .. suffix,
+                    TextColor3 = Config.Theme.Primary,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Right,
+                })
+                
+                local track = Create("Frame", {
+                    Name = "Track",
+                    Parent = sliderFrame,
+                    BackgroundColor3 = Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 8, 0, 26),
+                    Size = UDim2.new(1, -16, 0, 4),
+                })
+                
+                local fill = Create("Frame", {
+                    Name = "Fill",
+                    Parent = track,
+                    BackgroundColor3 = Config.Theme.Primary,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new((default - min) / (max - min), 0, 1, 0),
+                })
+                
+                local thumb = Create("Frame", {
+                    Name = "Thumb",
+                    Parent = track,
+                    BackgroundColor3 = Config.Theme.Surface,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new((default - min) / (max - min), -5, 0.5, -5),
+                    Size = UDim2.new(0, 10, 0, 10),
+                    ZIndex = 2,
+                })
+                
+                Create("Frame", {
+                    Name = "Inner",
+                    Parent = thumb,
+                    BackgroundColor3 = Config.Theme.Primary,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 2, 0, 2),
+                    Size = UDim2.new(1, -4, 1, -4),
+                })
                 
                 local dragging = false
                 
@@ -1154,9 +1183,9 @@ function FSlib:CreateWindow(options)
                     local value = math.floor(rawValue / increment + 0.5) * increment
                     value = math.clamp(value, min, max)
                     
-                    -- Round to avoid floating point errors
                     if increment < 1 then
-                        value = tonumber(string.format("%." .. tostring(#tostring(increment):match("%.(%d+)") or 0) .. "f", value))
+                        local decimals = #tostring(increment):match("%.(%d+)") or 0
+                        value = tonumber(string.format("%." .. decimals .. "f", value))
                     end
                     
                     Slider.Value = value
@@ -1225,136 +1254,140 @@ function FSlib:CreateWindow(options)
                 
                 FSlib.Flags[flag] = default
                 
-                local Dropdown = { Value = default, Options = optionsList, Type = "Dropdown" }
+                local Dropdown = { Value = default, Options = optionsList, Type = "Dropdown", Open = false }
                 table.insert(Section.Elements, Dropdown)
                 
                 local dropdownFrame = Create("Frame", {
                     Name = dropdownName,
-                    Parent = sectionContent,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 52),
                     ClipsDescendants = false,
                     ZIndex = 10,
-                }, {
-                    Create("TextLabel", {
-                        Name = "Label",
-                        BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 8, 0, 4),
-                        Size = UDim2.new(1, -8, 0, 16),
-                        Font = Config.Font,
-                        Text = dropdownName,
-                        TextColor3 = Config.Theme.TextDark,
-                        TextSize = 11,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                        ZIndex = 10,
-                    }),
-                    Create("TextButton", {
-                        Name = "Selected",
-                        BackgroundColor3 = Config.Theme.Surface,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(0, 8, 0, 22),
-                        Size = UDim2.new(1, -16, 0, 24),
-                        Font = Config.Font,
-                        Text = "",
-                        TextColor3 = Config.Theme.Text,
-                        TextSize = 11,
-                        AutoButtonColor = false,
-                        ZIndex = 10,
-                    }, {
-                        Create("Frame", {
-                            Name = "Border",
-                            BackgroundColor3 = Config.Theme.Border,
-                            BorderSizePixel = 0,
-                            Size = UDim2.new(1, 0, 0, 1),
-                            Position = UDim2.new(0, 0, 1, -1),
-                            ZIndex = 10,
-                        }),
-                        Create("TextLabel", {
-                            Name = "Text",
-                            BackgroundTransparency = 1,
-                            Position = UDim2.new(0, 8, 0, 0),
-                            Size = UDim2.new(1, -30, 1, 0),
-                            Font = Config.Font,
-                            Text = default,
-                            TextColor3 = Config.Theme.Text,
-                            TextSize = 11,
-                            TextXAlignment = Enum.TextXAlignment.Left,
-                            ZIndex = 10,
-                        }),
-                        Create("TextLabel", {
-                            Name = "Arrow",
-                            BackgroundTransparency = 1,
-                            Position = UDim2.new(1, -20, 0, 0),
-                            Size = UDim2.new(0, 16, 1, 0),
-                            Font = Config.Font,
-                            Text = "▼",
-                            TextColor3 = Config.Theme.TextDarker,
-                            TextSize = 8,
-                            ZIndex = 10,
-                        }),
-                    }),
-                    Create("Frame", {
-                        Name = "OptionsList",
-                        BackgroundColor3 = Config.Theme.Surface,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(0, 8, 0, 46),
-                        Size = UDim2.new(1, -16, 0, 0),
-                        ClipsDescendants = true,
-                        Visible = false,
-                        ZIndex = 100,
-                    }, {
-                        Create("Frame", {
-                            Name = "Border",
-                            BackgroundColor3 = Config.Theme.Border,
-                            BorderSizePixel = 0,
-                            Size = UDim2.new(1, 0, 0, 1),
-                            Position = UDim2.new(0, 0, 0, 0),
-                            ZIndex = 100,
-                        }),
-                        Create("ScrollingFrame", {
-                            Name = "Scroll",
-                            BackgroundTransparency = 1,
-                            BorderSizePixel = 0,
-                            Position = UDim2.new(0, 0, 0, 1),
-                            Size = UDim2.new(1, 0, 1, -1),
-                            CanvasSize = UDim2.new(0, 0, 0, 0),
-                            ScrollBarThickness = 2,
-                            ScrollBarImageColor3 = Config.Theme.Border,
-                            AutomaticCanvasSize = Enum.AutomaticSize.Y,
-                            ZIndex = 100,
-                        }, {
-                            Create("UIListLayout", {
-                                SortOrder = Enum.SortOrder.LayoutOrder,
-                                Padding = UDim.new(0, 0),
-                            }),
-                        }),
-                    }),
+                    LayoutOrder = #Section.Elements,
                 })
                 
-                local selectedBtn = dropdownFrame:FindFirstChild("Selected")
-                local selectedText = selectedBtn:FindFirstChild("Text")
-                local arrow = selectedBtn:FindFirstChild("Arrow")
-                local optionsList = dropdownFrame:FindFirstChild("OptionsList")
-                local scroll = optionsList:FindFirstChild("Scroll")
+                Create("TextLabel", {
+                    Name = "Label",
+                    Parent = dropdownFrame,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 8, 0, 4),
+                    Size = UDim2.new(1, -8, 0, 16),
+                    Font = Config.Font,
+                    Text = dropdownName,
+                    TextColor3 = Config.Theme.TextDark,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 10,
+                })
                 
-                local isOpen = false
+                local selectedBtn = Create("TextButton", {
+                    Name = "Selected",
+                    Parent = dropdownFrame,
+                    BackgroundColor3 = Config.Theme.Surface,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 8, 0, 22),
+                    Size = UDim2.new(1, -16, 0, 24),
+                    Font = Config.Font,
+                    Text = "",
+                    AutoButtonColor = false,
+                    ZIndex = 10,
+                })
+                
+                Create("Frame", {
+                    Name = "Border",
+                    Parent = selectedBtn,
+                    BackgroundColor3 = Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 1),
+                    Position = UDim2.new(0, 0, 1, -1),
+                    ZIndex = 10,
+                })
+                
+                local selectedText = Create("TextLabel", {
+                    Name = "Text",
+                    Parent = selectedBtn,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 8, 0, 0),
+                    Size = UDim2.new(1, -30, 1, 0),
+                    Font = Config.Font,
+                    Text = default,
+                    TextColor3 = Config.Theme.Text,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 10,
+                })
+                
+                local arrow = Create("TextLabel", {
+                    Name = "Arrow",
+                    Parent = selectedBtn,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(1, -20, 0, 0),
+                    Size = UDim2.new(0, 16, 1, 0),
+                    Font = Config.Font,
+                    Text = "▼",
+                    TextColor3 = Config.Theme.TextDarker,
+                    TextSize = 8,
+                    ZIndex = 10,
+                })
+                
+                local optionsFrame = Create("Frame", {
+                    Name = "OptionsList",
+                    Parent = dropdownFrame,
+                    BackgroundColor3 = Config.Theme.Surface,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 8, 0, 46),
+                    Size = UDim2.new(1, -16, 0, 0),
+                    ClipsDescendants = true,
+                    Visible = false,
+                    ZIndex = 100,
+                })
+                
+                Create("Frame", {
+                    Name = "Border",
+                    Parent = optionsFrame,
+                    BackgroundColor3 = Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 1),
+                    ZIndex = 100,
+                })
+                
+                local scroll = Create("ScrollingFrame", {
+                    Name = "Scroll",
+                    Parent = optionsFrame,
+                    BackgroundTransparency = 1,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 0, 0, 1),
+                    Size = UDim2.new(1, 0, 1, -1),
+                    CanvasSize = UDim2.new(0, 0, 0, 0),
+                    ScrollBarThickness = 2,
+                    ScrollBarImageColor3 = Config.Theme.Border,
+                    AutomaticCanvasSize = Enum.AutomaticSize.Y,
+                    ZIndex = 100,
+                })
+                
+                Create("UIListLayout", {
+                    Parent = scroll,
+                    SortOrder = Enum.SortOrder.LayoutOrder,
+                    Padding = UDim.new(0, 0),
+                })
                 
                 local function toggleDropdown()
-                    isOpen = not isOpen
+                    Dropdown.Open = not Dropdown.Open
                     
-                    if isOpen then
+                    if Dropdown.Open then
                         local height = math.min(#Dropdown.Options * 24, 120)
-                        optionsList.Visible = true
-                        Tween(optionsList, { Size = UDim2.new(1, -16, 0, height) }, 0.15)
+                        optionsFrame.Visible = true
+                        Tween(optionsFrame, { Size = UDim2.new(1, -16, 0, height) }, 0.15)
                         Tween(arrow, { Rotation = 180 }, 0.15)
                         Tween(selectedBtn, { BackgroundColor3 = Config.Theme.Border }, 0.1)
                     else
-                        Tween(optionsList, { Size = UDim2.new(1, -16, 0, 0) }, 0.15)
+                        Tween(optionsFrame, { Size = UDim2.new(1, -16, 0, 0) }, 0.15)
                         Tween(arrow, { Rotation = 0 }, 0.15)
                         Tween(selectedBtn, { BackgroundColor3 = Config.Theme.Surface }, 0.1)
                         task.delay(0.15, function()
-                            if not isOpen then
-                                optionsList.Visible = false
+                            if not Dropdown.Open then
+                                optionsFrame.Visible = false
                             end
                         end)
                     end
@@ -1377,32 +1410,33 @@ function FSlib:CreateWindow(options)
                             Size = UDim2.new(1, 0, 0, 24),
                             Font = Config.Font,
                             Text = "",
-                            TextColor3 = option == Dropdown.Value and Config.Theme.Primary or Config.Theme.Text,
-                            TextSize = 11,
                             LayoutOrder = i,
                             AutoButtonColor = false,
                             ZIndex = 100,
-                        }, {
-                            Create("Frame", {
-                                Name = "Accent",
-                                BackgroundColor3 = Config.Theme.Primary,
-                                BorderSizePixel = 0,
-                                Size = UDim2.new(0, 2, 1, 0),
-                                Visible = option == Dropdown.Value,
-                                ZIndex = 100,
-                            }),
-                            Create("TextLabel", {
-                                Name = "Text",
-                                BackgroundTransparency = 1,
-                                Position = UDim2.new(0, 10, 0, 0),
-                                Size = UDim2.new(1, -10, 1, 0),
-                                Font = Config.Font,
-                                Text = option,
-                                TextColor3 = option == Dropdown.Value and Config.Theme.Primary or Config.Theme.Text,
-                                TextSize = 11,
-                                TextXAlignment = Enum.TextXAlignment.Left,
-                                ZIndex = 100,
-                            }),
+                        })
+                        
+                        Create("Frame", {
+                            Name = "Accent",
+                            Parent = optionBtn,
+                            BackgroundColor3 = Config.Theme.Primary,
+                            BorderSizePixel = 0,
+                            Size = UDim2.new(0, 2, 1, 0),
+                            Visible = option == Dropdown.Value,
+                            ZIndex = 100,
+                        })
+                        
+                        Create("TextLabel", {
+                            Name = "Text",
+                            Parent = optionBtn,
+                            BackgroundTransparency = 1,
+                            Position = UDim2.new(0, 10, 0, 0),
+                            Size = UDim2.new(1, -10, 1, 0),
+                            Font = Config.Font,
+                            Text = option,
+                            TextColor3 = option == Dropdown.Value and Config.Theme.Primary or Config.Theme.Text,
+                            TextSize = 11,
+                            TextXAlignment = Enum.TextXAlignment.Left,
+                            ZIndex = 100,
                         })
                         
                         optionBtn.MouseEnter:Connect(function()
@@ -1433,13 +1467,13 @@ function FSlib:CreateWindow(options)
                 selectedBtn.MouseButton1Click:Connect(toggleDropdown)
                 
                 selectedBtn.MouseEnter:Connect(function()
-                    if not isOpen then
+                    if not Dropdown.Open then
                         Tween(selectedBtn, { BackgroundColor3 = Config.Theme.Border }, 0.1)
                     end
                 end)
                 
                 selectedBtn.MouseLeave:Connect(function()
-                    if not isOpen then
+                    if not Dropdown.Open then
                         Tween(selectedBtn, { BackgroundColor3 = Config.Theme.Surface }, 0.1)
                     end
                 end)
@@ -1482,42 +1516,43 @@ function FSlib:CreateWindow(options)
                 
                 FSlib.Flags[flag] = default
                 
-                local Keybind = { Value = default, Type = "Keybind" }
+                local Keybind = { Value = default, Type = "Keybind", Listening = false }
                 table.insert(Section.Elements, Keybind)
                 
                 local keybindFrame = Create("Frame", {
                     Name = keybindName,
-                    Parent = sectionContent,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 32),
-                }, {
-                    Create("TextLabel", {
-                        Name = "Label",
-                        BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 8, 0, 0),
-                        Size = UDim2.new(0.6, -8, 1, 0),
-                        Font = Config.Font,
-                        Text = keybindName,
-                        TextColor3 = Config.Theme.TextDark,
-                        TextSize = 11,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                    }),
-                    Create("TextButton", {
-                        Name = "Button",
-                        BackgroundColor3 = Config.Theme.Surface,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(0.6, 0, 0.5, -10),
-                        Size = UDim2.new(0.4, -8, 0, 20),
-                        Font = Config.Font,
-                        Text = default == Enum.KeyCode.Unknown and "[None]" or "[" .. default.Name .. "]",
-                        TextColor3 = Config.Theme.TextDark,
-                        TextSize = 10,
-                        AutoButtonColor = false,
-                    }),
+                    LayoutOrder = #Section.Elements,
                 })
                 
-                local button = keybindFrame:FindFirstChild("Button")
-                local listening = false
+                Create("TextLabel", {
+                    Name = "Label",
+                    Parent = keybindFrame,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 8, 0, 0),
+                    Size = UDim2.new(0.6, -8, 1, 0),
+                    Font = Config.Font,
+                    Text = keybindName,
+                    TextColor3 = Config.Theme.TextDark,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                })
+                
+                local button = Create("TextButton", {
+                    Name = "Button",
+                    Parent = keybindFrame,
+                    BackgroundColor3 = Config.Theme.Surface,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0.6, 0, 0.5, -10),
+                    Size = UDim2.new(0.4, -8, 0, 20),
+                    Font = Config.Font,
+                    Text = default == Enum.KeyCode.Unknown and "[None]" or "[" .. default.Name .. "]",
+                    TextColor3 = Config.Theme.TextDark,
+                    TextSize = 10,
+                    AutoButtonColor = false,
+                })
                 
                 local function getKeyName(key)
                     if key == Enum.KeyCode.Unknown then
@@ -1527,13 +1562,13 @@ function FSlib:CreateWindow(options)
                 end
                 
                 button.MouseButton1Click:Connect(function()
-                    listening = true
+                    Keybind.Listening = true
                     button.Text = "[...]"
                     Tween(button, { TextColor3 = Config.Theme.Primary }, 0.1)
                 end)
                 
                 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                    if listening then
+                    if Keybind.Listening then
                         local newKey = Enum.KeyCode.Unknown
                         
                         if input.UserInputType == Enum.UserInputType.Keyboard then
@@ -1542,17 +1577,13 @@ function FSlib:CreateWindow(options)
                             else
                                 newKey = input.KeyCode
                             end
-                        elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-                            newKey = Enum.KeyCode.Unknown -- Can't bind mouse1
-                        elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
-                            newKey = Enum.KeyCode.Unknown -- Treat as right click = unbind
                         end
                         
                         Keybind.Value = newKey
                         FSlib.Flags[flag] = newKey
                         button.Text = "[" .. getKeyName(newKey) .. "]"
                         Tween(button, { TextColor3 = Config.Theme.TextDark }, 0.1)
-                        listening = false
+                        Keybind.Listening = false
                         changedCallback(newKey)
                     elseif not gameProcessed and input.KeyCode == Keybind.Value and Keybind.Value ~= Enum.KeyCode.Unknown then
                         callback(Keybind.Value)
@@ -1560,13 +1591,13 @@ function FSlib:CreateWindow(options)
                 end)
                 
                 button.MouseEnter:Connect(function()
-                    if not listening then
+                    if not Keybind.Listening then
                         Tween(button, { BackgroundColor3 = Config.Theme.Border }, 0.1)
                     end
                 end)
                 
                 button.MouseLeave:Connect(function()
-                    if not listening then
+                    if not Keybind.Listening then
                         Tween(button, { BackgroundColor3 = Config.Theme.Surface }, 0.1)
                     end
                 end)
@@ -1601,35 +1632,37 @@ function FSlib:CreateWindow(options)
                 
                 local buttonFrame = Create("Frame", {
                     Name = buttonName,
-                    Parent = sectionContent,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 36),
-                }, {
-                    Create("TextButton", {
-                        Name = "Button",
-                        BackgroundColor3 = Config.Theme.Primary,
-                        BackgroundTransparency = 0.9,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(0, 8, 0, 4),
-                        Size = UDim2.new(1, -16, 0, 28),
-                        Font = Config.Font,
-                        Text = buttonName,
-                        TextColor3 = Config.Theme.Primary,
-                        TextSize = 11,
-                        AutoButtonColor = false,
-                    }, {
-                        Create("Frame", {
-                            Name = "Border",
-                            BackgroundColor3 = Config.Theme.Primary,
-                            BackgroundTransparency = 0.7,
-                            BorderSizePixel = 0,
-                            Size = UDim2.new(1, 0, 0, 1),
-                            Position = UDim2.new(0, 0, 1, -1),
-                        }),
-                    }),
+                    LayoutOrder = #Section.Elements,
                 })
                 
-                local btn = buttonFrame:FindFirstChild("Button")
+                local btn = Create("TextButton", {
+                    Name = "Button",
+                    Parent = buttonFrame,
+                    BackgroundColor3 = Config.Theme.Primary,
+                    BackgroundTransparency = 0.9,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 8, 0, 4),
+                    Size = UDim2.new(1, -16, 0, 28),
+                    Font = Config.Font,
+                    Text = buttonName,
+                    TextColor3 = Config.Theme.Primary,
+                    TextSize = 11,
+                    AutoButtonColor = false,
+                    ClipsDescendants = true,
+                })
+                
+                Create("Frame", {
+                    Name = "Border",
+                    Parent = btn,
+                    BackgroundColor3 = Config.Theme.Primary,
+                    BackgroundTransparency = 0.7,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 1),
+                    Position = UDim2.new(0, 0, 1, -1),
+                })
                 
                 btn.MouseButton1Click:Connect(function()
                     Ripple(btn, Mouse.X, Mouse.Y)
@@ -1668,55 +1701,58 @@ function FSlib:CreateWindow(options)
                 
                 local textboxFrame = Create("Frame", {
                     Name = textboxName,
-                    Parent = sectionContent,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 52),
-                }, {
-                    Create("TextLabel", {
-                        Name = "Label",
-                        BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 8, 0, 4),
-                        Size = UDim2.new(1, -8, 0, 16),
-                        Font = Config.Font,
-                        Text = textboxName,
-                        TextColor3 = Config.Theme.TextDark,
-                        TextSize = 11,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                    }),
-                    Create("Frame", {
-                        Name = "InputContainer",
-                        BackgroundColor3 = Config.Theme.Surface,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(0, 8, 0, 22),
-                        Size = UDim2.new(1, -16, 0, 24),
-                    }, {
-                        Create("Frame", {
-                            Name = "Border",
-                            BackgroundColor3 = Config.Theme.Border,
-                            BorderSizePixel = 0,
-                            Size = UDim2.new(1, 0, 0, 1),
-                            Position = UDim2.new(0, 0, 1, -1),
-                        }),
-                        Create("TextBox", {
-                            Name = "Input",
-                            BackgroundTransparency = 1,
-                            Position = UDim2.new(0, 8, 0, 0),
-                            Size = UDim2.new(1, -16, 1, 0),
-                            Font = Config.Font,
-                            Text = default,
-                            PlaceholderText = placeholder,
-                            TextColor3 = Config.Theme.Text,
-                            PlaceholderColor3 = Config.Theme.TextDarker,
-                            TextSize = 11,
-                            TextXAlignment = Enum.TextXAlignment.Left,
-                            ClearTextOnFocus = false,
-                        }),
-                    }),
+                    LayoutOrder = #Section.Elements,
                 })
                 
-                local container = textboxFrame:FindFirstChild("InputContainer")
-                local input = container:FindFirstChild("Input")
-                local border = container:FindFirstChild("Border")
+                Create("TextLabel", {
+                    Name = "Label",
+                    Parent = textboxFrame,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 8, 0, 4),
+                    Size = UDim2.new(1, -8, 0, 16),
+                    Font = Config.Font,
+                    Text = textboxName,
+                    TextColor3 = Config.Theme.TextDark,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                })
+                
+                local container = Create("Frame", {
+                    Name = "InputContainer",
+                    Parent = textboxFrame,
+                    BackgroundColor3 = Config.Theme.Surface,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 8, 0, 22),
+                    Size = UDim2.new(1, -16, 0, 24),
+                })
+                
+                local border = Create("Frame", {
+                    Name = "Border",
+                    Parent = container,
+                    BackgroundColor3 = Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 1),
+                    Position = UDim2.new(0, 0, 1, -1),
+                })
+                
+                local input = Create("TextBox", {
+                    Name = "Input",
+                    Parent = container,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 8, 0, 0),
+                    Size = UDim2.new(1, -16, 1, 0),
+                    Font = Config.Font,
+                    Text = default,
+                    PlaceholderText = placeholder,
+                    TextColor3 = Config.Theme.Text,
+                    PlaceholderColor3 = Config.Theme.TextDarker,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    ClearTextOnFocus = false,
+                })
                 
                 input.Focused:Connect(function()
                     Tween(border, { BackgroundColor3 = Config.Theme.Primary }, 0.1)
@@ -1757,154 +1793,164 @@ function FSlib:CreateWindow(options)
                 
                 FSlib.Flags[flag] = default
                 
-                local ColorPicker = { Value = default, Type = "ColorPicker" }
+                local ColorPicker = { Value = default, Type = "ColorPicker", Open = false }
                 table.insert(Section.Elements, ColorPicker)
                 
                 local h, s, v = default:ToHSV()
                 
                 local colorFrame = Create("Frame", {
                     Name = colorName,
-                    Parent = sectionContent,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 32),
                     ClipsDescendants = false,
                     ZIndex = 50,
-                }, {
-                    Create("TextLabel", {
-                        Name = "Label",
-                        BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 8, 0, 0),
-                        Size = UDim2.new(0.7, -8, 1, 0),
-                        Font = Config.Font,
-                        Text = colorName,
-                        TextColor3 = Config.Theme.TextDark,
-                        TextSize = 11,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                        ZIndex = 50,
-                    }),
-                    Create("TextButton", {
-                        Name = "Preview",
-                        BackgroundColor3 = default,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(1, -38, 0.5, -8),
-                        Size = UDim2.new(0, 30, 0, 16),
-                        Text = "",
-                        AutoButtonColor = false,
-                        ZIndex = 50,
-                    }, {
-                        Create("Frame", {
-                            Name = "Border",
-                            BackgroundColor3 = Config.Theme.Border,
-                            BorderSizePixel = 0,
-                            Position = UDim2.new(0, -1, 0, -1),
-                            Size = UDim2.new(1, 2, 1, 2),
-                            ZIndex = 49,
-                        }),
-                    }),
-                    Create("Frame", {
-                        Name = "Picker",
-                        BackgroundColor3 = Config.Theme.Surface,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(1, -168, 0, 32),
-                        Size = UDim2.new(0, 160, 0, 140),
-                        Visible = false,
-                        ZIndex = 200,
-                    }, {
-                        Create("Frame", {
-                            Name = "Border",
-                            BackgroundColor3 = Config.Theme.Border,
-                            BorderSizePixel = 0,
-                            Position = UDim2.new(0, -1, 0, -1),
-                            Size = UDim2.new(1, 2, 1, 2),
-                            ZIndex = 199,
-                        }),
-                        -- Saturation/Value picker
-                        Create("ImageButton", {
-                            Name = "SV",
-                            BackgroundColor3 = Color3.fromHSV(h, 1, 1),
-                            BorderSizePixel = 0,
-                            Position = UDim2.new(0, 8, 0, 8),
-                            Size = UDim2.new(1, -36, 0, 100),
-                            Image = "rbxassetid://4155801252",
-                            AutoButtonColor = false,
-                            ZIndex = 200,
-                        }, {
-                            Create("Frame", {
-                                Name = "Cursor",
-                                BackgroundColor3 = Color3.new(1, 1, 1),
-                                BorderSizePixel = 0,
-                                Position = UDim2.new(s, -4, 1 - v, -4),
-                                Size = UDim2.new(0, 8, 0, 8),
-                                ZIndex = 201,
-                            }, {
-                                Create("Frame", {
-                                    BackgroundColor3 = Color3.new(0, 0, 0),
-                                    BorderSizePixel = 0,
-                                    Position = UDim2.new(0, 1, 0, 1),
-                                    Size = UDim2.new(1, -2, 1, -2),
-                                    ZIndex = 201,
-                                }),
-                            }),
-                        }),
-                        -- Hue slider
-                        Create("ImageButton", {
-                            Name = "Hue",
-                            BackgroundColor3 = Color3.new(1, 1, 1),
-                            BorderSizePixel = 0,
-                            Position = UDim2.new(1, -20, 0, 8),
-                            Size = UDim2.new(0, 12, 0, 100),
-                            Image = "rbxassetid://4155801252",
-                            ImageColor3 = Color3.new(0, 0, 0),
-                            AutoButtonColor = false,
-                            ZIndex = 200,
-                        }, {
-                            Create("UIGradient", {
-                                Color = ColorSequence.new({
-                                    ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-                                    ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
-                                    ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)),
-                                    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
-                                    ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)),
-                                    ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
-                                    ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)),
-                                }),
-                                Rotation = 90,
-                            }),
-                            Create("Frame", {
-                                Name = "Cursor",
-                                BackgroundColor3 = Color3.new(1, 1, 1),
-                                BorderSizePixel = 0,
-                                Position = UDim2.new(0, -2, h, -2),
-                                Size = UDim2.new(1, 4, 0, 4),
-                                ZIndex = 201,
-                            }),
-                        }),
-                        -- Hex input
-                        Create("TextBox", {
-                            Name = "HexInput",
-                            BackgroundColor3 = Config.Theme.Background,
-                            BorderSizePixel = 0,
-                            Position = UDim2.new(0, 8, 1, -24),
-                            Size = UDim2.new(1, -16, 0, 16),
-                            Font = Config.Font,
-                            Text = "#" .. default:ToHex():upper(),
-                            TextColor3 = Config.Theme.Text,
-                            TextSize = 10,
-                            ClearTextOnFocus = false,
-                            ZIndex = 200,
-                        }),
-                    }),
+                    LayoutOrder = #Section.Elements,
                 })
                 
-                local preview = colorFrame:FindFirstChild("Preview")
-                local picker = colorFrame:FindFirstChild("Picker")
-                local svPicker = picker:FindFirstChild("SV")
-                local huePicker = picker:FindFirstChild("Hue")
-                local svCursor = svPicker:FindFirstChild("Cursor")
-                local hueCursor = huePicker:FindFirstChild("Cursor")
-                local hexInput = picker:FindFirstChild("HexInput")
+                Create("TextLabel", {
+                    Name = "Label",
+                    Parent = colorFrame,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 8, 0, 0),
+                    Size = UDim2.new(0.7, -8, 1, 0),
+                    Font = Config.Font,
+                    Text = colorName,
+                    TextColor3 = Config.Theme.TextDark,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 50,
+                })
                 
-                local isOpen = false
+                local previewBorder = Create("Frame", {
+                    Name = "PreviewBorder",
+                    Parent = colorFrame,
+                    BackgroundColor3 = Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(1, -39, 0.5, -9),
+                    Size = UDim2.new(0, 32, 0, 18),
+                    ZIndex = 49,
+                })
+                
+                local preview = Create("TextButton", {
+                    Name = "Preview",
+                    Parent = previewBorder,
+                    BackgroundColor3 = default,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 1, 0, 1),
+                    Size = UDim2.new(1, -2, 1, -2),
+                    Text = "",
+                    AutoButtonColor = false,
+                    ZIndex = 50,
+                })
+                
+                local picker = Create("Frame", {
+                    Name = "Picker",
+                    Parent = colorFrame,
+                    BackgroundColor3 = Config.Theme.Surface,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(1, -168, 0, 32),
+                    Size = UDim2.new(0, 160, 0, 140),
+                    Visible = false,
+                    ZIndex = 200,
+                })
+                
+                Create("Frame", {
+                    Name = "Border",
+                    Parent = picker,
+                    BackgroundColor3 = Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, -1, 0, -1),
+                    Size = UDim2.new(1, 2, 1, 2),
+                    ZIndex = 199,
+                })
+                
+                -- SV Picker
+                local svPicker = Create("ImageButton", {
+                    Name = "SV",
+                    Parent = picker,
+                    BackgroundColor3 = Color3.fromHSV(h, 1, 1),
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 8, 0, 8),
+                    Size = UDim2.new(1, -36, 0, 100),
+                    Image = "rbxassetid://4155801252",
+                    AutoButtonColor = false,
+                    ZIndex = 200,
+                })
+                
+                local svCursor = Create("Frame", {
+                    Name = "Cursor",
+                    Parent = svPicker,
+                    BackgroundColor3 = Color3.new(1, 1, 1),
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(s, -4, 1 - v, -4),
+                    Size = UDim2.new(0, 8, 0, 8),
+                    ZIndex = 201,
+                })
+                
+                Create("Frame", {
+                    Parent = svCursor,
+                    BackgroundColor3 = Color3.new(0, 0, 0),
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 1, 0, 1),
+                    Size = UDim2.new(1, -2, 1, -2),
+                    ZIndex = 201,
+                })
+                
+                -- Hue Picker
+                local huePicker = Create("ImageButton", {
+                    Name = "Hue",
+                    Parent = picker,
+                    BackgroundColor3 = Color3.new(1, 1, 1),
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(1, -20, 0, 8),
+                    Size = UDim2.new(0, 12, 0, 100),
+                    Image = "rbxassetid://4155801252",
+                    ImageColor3 = Color3.new(0, 0, 0),
+                    AutoButtonColor = false,
+                    ZIndex = 200,
+                })
+                
+                Create("UIGradient", {
+                    Parent = huePicker,
+                    Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+                        ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
+                        ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)),
+                        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+                        ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)),
+                        ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)),
+                    }),
+                    Rotation = 90,
+                })
+                
+                local hueCursor = Create("Frame", {
+                    Name = "Cursor",
+                    Parent = huePicker,
+                    BackgroundColor3 = Color3.new(1, 1, 1),
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, -2, h, -2),
+                    Size = UDim2.new(1, 4, 0, 4),
+                    ZIndex = 201,
+                })
+                
+                -- Hex Input
+                local hexInput = Create("TextBox", {
+                    Name = "HexInput",
+                    Parent = picker,
+                    BackgroundColor3 = Config.Theme.Background,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 8, 1, -24),
+                    Size = UDim2.new(1, -16, 0, 16),
+                    Font = Config.Font,
+                    Text = "#" .. default:ToHex():upper(),
+                    TextColor3 = Config.Theme.Text,
+                    TextSize = 10,
+                    ClearTextOnFocus = false,
+                    ZIndex = 200,
+                })
+                
                 local draggingSV = false
                 local draggingHue = false
                 
@@ -1921,8 +1967,8 @@ function FSlib:CreateWindow(options)
                 end
                 
                 preview.MouseButton1Click:Connect(function()
-                    isOpen = not isOpen
-                    picker.Visible = isOpen
+                    ColorPicker.Open = not ColorPicker.Open
+                    picker.Visible = ColorPicker.Open
                 end)
                 
                 svPicker.InputBegan:Connect(function(input)
@@ -1999,24 +2045,24 @@ function FSlib:CreateWindow(options)
                 
                 local labelFrame = Create("Frame", {
                     Name = "Label",
-                    Parent = sectionContent,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 24),
-                }, {
-                    Create("TextLabel", {
-                        Name = "Text",
-                        BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 8, 0, 0),
-                        Size = UDim2.new(1, -16, 1, 0),
-                        Font = Config.Font,
-                        Text = text or "",
-                        TextColor3 = Config.Theme.TextDarker,
-                        TextSize = 11,
-                        TextXAlignment = Enum.TextXAlignment.Left,
-                    }),
+                    LayoutOrder = #Section.Elements,
                 })
                 
-                local textLabel = labelFrame:FindFirstChild("Text")
+                local textLabel = Create("TextLabel", {
+                    Name = "Text",
+                    Parent = labelFrame,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 8, 0, 0),
+                    Size = UDim2.new(1, -16, 1, 0),
+                    Font = Config.Font,
+                    Text = text or "",
+                    TextColor3 = Config.Theme.TextDarker,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                })
                 
                 function Label:Set(newText)
                     textLabel.Text = newText
@@ -2035,18 +2081,20 @@ function FSlib:CreateWindow(options)
                 local Divider = { Type = "Divider" }
                 table.insert(Section.Elements, Divider)
                 
-                Create("Frame", {
+                local dividerFrame = Create("Frame", {
                     Name = "Divider",
-                    Parent = sectionContent,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 12),
-                }, {
-                    Create("Frame", {
-                        BackgroundColor3 = Config.Theme.Border,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(0, 8, 0.5, 0),
-                        Size = UDim2.new(1, -16, 0, 1),
-                    }),
+                    LayoutOrder = #Section.Elements,
+                })
+                
+                Create("Frame", {
+                    Parent = dividerFrame,
+                    BackgroundColor3 = Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 8, 0.5, 0),
+                    Size = UDim2.new(1, -16, 0, 1),
                 })
                 
                 return Divider
@@ -2151,7 +2199,6 @@ function FSlib:LoadConfig(name)
             if data.Type == "Color3" then
                 FSlib.Flags[flag] = Color3.new(data.Value[1], data.Value[2], data.Value[3])
             elseif data.Type == "EnumItem" then
-                -- Parse enum
                 local enumPath = data.Value:split(".")
                 if #enumPath == 3 then
                     local enumType = Enum[enumPath[2]]
