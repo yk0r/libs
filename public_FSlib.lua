@@ -6,7 +6,7 @@
     ██║     ███████║███████╗██║██████╔╝
     ╚═╝     ╚══════╝╚══════╝╚═╝╚═════╝ 
     
-    FriendShip.Lua (FSlib) v1.0.1
+    FriendShip.Lua (FSlib) v1.0.3
     A professional Roblox GUI Library
     
     GitHub: https://github.com/FSlib
@@ -14,7 +14,7 @@
 ]]
 
 local FSlib = {
-    _VERSION = "1.0.1",
+    _VERSION = "1.0.3",
     _NAME = "FriendShip.Lua",
     Flags = {},
     Windows = {},
@@ -35,7 +35,7 @@ local FSlib = {
         Error = Color3.fromRGB(255, 60, 60),
         Info = Color3.fromRGB(60, 150, 255),
     },
-    _ThemeBindings = {}, -- 存储需要实时更新的元素
+    _ThemeBindings = {},
 }
 
 -- Services
@@ -192,27 +192,14 @@ function FSlib:CreateWindow(options)
     })
     BindToTheme(titleBorder, "BackgroundColor3", "Border")
     
-    -- Title Icon (可以实时更新颜色) - 使用方块图标
-    local titleIcon = Create("TextLabel", {
-        Name = "TitleIcon",
-        Parent = titleBar,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 8, 0, 0),
-        Size = UDim2.new(0, 20, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = "▣",
-        TextColor3 = FSlib.Theme.Primary,
-        TextSize = 12,
-        ZIndex = 3,
-    })
-    BindToTheme(titleIcon, "TextColor3", "Primary")
-    
+    -- Title Label (无图标，简洁设计)
     local titleLabel = Create("TextLabel", {
         Name = "TitleLabel",
         Parent = titleBar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 28, 0, 0),
-        Size = UDim2.new(0, 200, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
         Font = Enum.Font.GothamBold,
         Text = title,
         TextColor3 = FSlib.Theme.Text,
@@ -226,10 +213,11 @@ function FSlib:CreateWindow(options)
         Name = "SubtitleLabel",
         Parent = titleBar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 28 + titleLabel.TextBounds.X + 6, 0, 0),
-        Size = UDim2.new(0, 100, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
         Font = Enum.Font.Gotham,
-        Text = subtitle,
+        Text = " | " .. subtitle,
         TextColor3 = FSlib.Theme.TextDark,
         TextSize = 10,
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -237,43 +225,14 @@ function FSlib:CreateWindow(options)
     })
     BindToTheme(subtitleLabel, "TextColor3", "TextDark")
     
-    -- Window Controls
-    local controlsFrame = Create("Frame", {
-        Name = "Controls",
-        Parent = titleBar,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -60, 0, 0),
-        Size = UDim2.new(0, 60, 1, 0),
-        ZIndex = 3,
-    })
+    -- 等待一帧后更新 subtitle 位置
+    task.defer(function()
+        subtitleLabel.Position = UDim2.new(0, 10 + titleLabel.TextBounds.X, 0, 0)
+    end)
     
-    local minimizeBtn = Create("TextButton", {
-        Name = "Minimize",
-        Parent = controlsFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 0),
-        Size = UDim2.new(0, 30, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = "−",
-        TextColor3 = FSlib.Theme.TextDark,
-        TextSize = 16,
-        ZIndex = 4,
-    })
-    BindToTheme(minimizeBtn, "TextColor3", "TextDark")
-    
-    local closeBtn = Create("TextButton", {
-        Name = "Close",
-        Parent = controlsFrame,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 30, 0, 0),
-        Size = UDim2.new(0, 30, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = "×",
-        TextColor3 = FSlib.Theme.TextDark,
-        TextSize = 16,
-        ZIndex = 4,
-    })
-    BindToTheme(closeBtn, "TextColor3", "TextDark")
+    titleLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
+        subtitleLabel.Position = UDim2.new(0, 10 + titleLabel.TextBounds.X, 0, 0)
+    end)
     
     -- Tab Container
     local tabContainer = Create("Frame", {
@@ -353,47 +312,11 @@ function FSlib:CreateWindow(options)
         end
     end)
     
-    -- Window Controls
-    local minimized = false
-    local originalSize = mainFrame.Size
-    
-    minimizeBtn.MouseButton1Click:Connect(function()
-        minimized = not minimized
-        if minimized then
-            Tween(mainFrame, { Size = UDim2.new(0, 600, 0, 28) }, 0.2)
-            minimizeBtn.Text = "+"
-        else
-            Tween(mainFrame, { Size = originalSize }, 0.2)
-            minimizeBtn.Text = "−"
-        end
-    end)
-    
-    closeBtn.MouseButton1Click:Connect(function()
-        Tween(mainFrame, { Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0) }, 0.3)
-        task.delay(0.3, function()
-            screenGui:Destroy()
-        end)
-    end)
-    
     -- Toggle Key
     UserInputService.InputBegan:Connect(function(input, processed)
         if not processed and input.KeyCode == toggleKey then
             mainFrame.Visible = not mainFrame.Visible
         end
-    end)
-    
-    -- Hover effects
-    minimizeBtn.MouseEnter:Connect(function()
-        Tween(minimizeBtn, { TextColor3 = FSlib.Theme.Text }, 0.1)
-    end)
-    minimizeBtn.MouseLeave:Connect(function()
-        Tween(minimizeBtn, { TextColor3 = FSlib.Theme.TextDark }, 0.1)
-    end)
-    closeBtn.MouseEnter:Connect(function()
-        Tween(closeBtn, { TextColor3 = FSlib.Theme.Error }, 0.1)
-    end)
-    closeBtn.MouseLeave:Connect(function()
-        Tween(closeBtn, { TextColor3 = FSlib.Theme.TextDark }, 0.1)
     end)
     
     -- Window Object
@@ -706,7 +629,7 @@ function FSlib:CreateWindow(options)
                 }
             end
             
-            -- Slider
+            -- Slider (支持键盘输入)
             function Section:CreateSlider(sliderOptions)
                 sliderOptions = sliderOptions or {}
                 local name = sliderOptions.Name or "Slider"
@@ -738,7 +661,8 @@ function FSlib:CreateWindow(options)
                     Name = "Label",
                     Parent = sliderFrame,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 14),
+                    Position = UDim2.new(0, 0, 0, 0),
+                    Size = UDim2.new(0.6, 0, 0, 14),
                     Font = Enum.Font.Gotham,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
@@ -748,19 +672,30 @@ function FSlib:CreateWindow(options)
                 })
                 BindToTheme(sliderLabel, "TextColor3", "Text")
                 
-                local sliderValue = Create("TextLabel", {
-                    Name = "Value",
+                -- 可输入的值框
+                local sliderValueBox = Create("TextBox", {
+                    Name = "ValueBox",
                     Parent = sliderFrame,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 14),
-                    Font = Enum.Font.Gotham,
+                    BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(1, -50, 0, 0),
+                    Size = UDim2.new(0, 50, 0, 14),
+                    Font = Enum.Font.Code,
                     Text = tostring(value) .. suffix,
                     TextColor3 = FSlib.Theme.Primary,
-                    TextSize = 11,
-                    TextXAlignment = Enum.TextXAlignment.Right,
+                    TextSize = 10,
+                    TextXAlignment = Enum.TextXAlignment.Center,
+                    ClearTextOnFocus = true,
                     ZIndex = 11,
                 })
-                BindToTheme(sliderValue, "TextColor3", "Primary")
+                BindToTheme(sliderValueBox, "BackgroundColor3", "BackgroundSecondary")
+                BindToTheme(sliderValueBox, "TextColor3", "Primary")
+                
+                Create("UIStroke", {
+                    Parent = sliderValueBox,
+                    Color = FSlib.Theme.Border,
+                    Thickness = 1,
+                })
                 
                 local sliderBg = Create("Frame", {
                     Name = "Background",
@@ -800,14 +735,9 @@ function FSlib:CreateWindow(options)
                 
                 local dragging = false
                 
-                local function updateSlider(input)
-                    local relativeX = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
-                    local rawValue = min + (max - min) * relativeX
-                    value = math.floor(rawValue / increment + 0.5) * increment
-                    value = math.clamp(value, min, max)
-                    
+                local function updateSliderVisual()
                     sliderFill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
-                    sliderValue.Text = tostring(value) .. suffix
+                    sliderValueBox.Text = tostring(value) .. suffix
                     
                     if flag then
                         FSlib.Flags[flag] = value
@@ -815,10 +745,18 @@ function FSlib:CreateWindow(options)
                     callback(value)
                 end
                 
+                local function updateSliderFromInput(input)
+                    local relativeX = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+                    local rawValue = min + (max - min) * relativeX
+                    value = math.floor(rawValue / increment + 0.5) * increment
+                    value = math.clamp(value, min, max)
+                    updateSliderVisual()
+                end
+                
                 sliderButton.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         dragging = true
-                        updateSlider(input)
+                        updateSliderFromInput(input)
                     end
                 end)
                 
@@ -830,19 +768,27 @@ function FSlib:CreateWindow(options)
                 
                 UserInputService.InputChanged:Connect(function(input)
                     if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                        updateSlider(input)
+                        updateSliderFromInput(input)
                     end
+                end)
+                
+                -- 键盘输入支持
+                sliderValueBox.FocusLost:Connect(function(enterPressed)
+                    local inputText = sliderValueBox.Text:gsub(suffix, ""):gsub("%s+", "")
+                    local inputNum = tonumber(inputText)
+                    
+                    if inputNum then
+                        inputNum = math.floor(inputNum / increment + 0.5) * increment
+                        value = math.clamp(inputNum, min, max)
+                    end
+                    
+                    updateSliderVisual()
                 end)
                 
                 return {
                     Set = function(_, newValue)
                         value = math.clamp(newValue, min, max)
-                        sliderFill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
-                        sliderValue.Text = tostring(value) .. suffix
-                        if flag then
-                            FSlib.Flags[flag] = value
-                        end
-                        callback(value)
+                        updateSliderVisual()
                     end,
                     Get = function()
                         return value
@@ -931,7 +877,7 @@ function FSlib:CreateWindow(options)
                 -- Dropdown List Container - 放在 ScreenGui 顶层确保不被遮挡
                 local dropdownList = Create("Frame", {
                     Name = "List_" .. name,
-                    Parent = screenGui, -- 放在最顶层
+                    Parent = screenGui,
                     BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 0, 0, 0),
@@ -962,7 +908,6 @@ function FSlib:CreateWindow(options)
                     SortOrder = Enum.SortOrder.LayoutOrder,
                 })
                 
-                -- 更新 Dropdown 位置的函数
                 local function updateDropdownPosition()
                     local absPos = dropdownButton.AbsolutePosition
                     local absSize = dropdownButton.AbsoluteSize
@@ -1127,7 +1072,6 @@ function FSlib:CreateWindow(options)
                             end
                         elseif input.UserInputType == Enum.UserInputType.MouseButton1 or 
                                input.UserInputType == Enum.UserInputType.MouseButton2 then
-                            -- Cancel on mouse click
                             listening = false
                             keybindButton.Text = value.Name or "None"
                             Tween(keybindButton, { BackgroundColor3 = FSlib.Theme.BackgroundSecondary }, 0.15)
@@ -1212,7 +1156,7 @@ function FSlib:CreateWindow(options)
                 -- Color Picker Panel - 放在 ScreenGui 顶层确保不被遮挡
                 local pickerPanel = Create("Frame", {
                     Name = "ColorPanel_" .. name,
-                    Parent = screenGui, -- 放在最顶层
+                    Parent = screenGui,
                     BackgroundColor3 = FSlib.Theme.Background,
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 0, 0, 0),
@@ -1228,7 +1172,6 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                -- 更新 ColorPicker 位置的函数
                 local function updatePickerPosition()
                     local absPos = colorPreview.AbsolutePosition
                     local absSize = colorPreview.AbsoluteSize
@@ -1807,7 +1750,6 @@ function FSlib:Notify(options)
     
     local accentColor = colors[notifType] or colors.Info
     
-    -- Find or create notification container
     local screenGui = game:GetService("CoreGui"):FindFirstChild("FSlib_Notifications")
     if not screenGui then
         screenGui = Create("ScreenGui", {
@@ -1886,10 +1828,8 @@ function FSlib:Notify(options)
         TextWrapped = true,
     })
     
-    -- Animate in
     Tween(notif, { Size = UDim2.new(1, 0, 0, 60) }, 0.3)
     
-    -- Auto remove
     task.delay(duration, function()
         Tween(notif, { Size = UDim2.new(1, 0, 0, 0) }, 0.3)
         task.delay(0.3, function()
@@ -1898,7 +1838,7 @@ function FSlib:Notify(options)
     end)
 end
 
--- Watermark
+-- Watermark (改进间距)
 function FSlib:CreateWatermark(options)
     options = options or {}
     local name = options.Name or "FSlib"
@@ -1916,7 +1856,7 @@ function FSlib:CreateWatermark(options)
         BackgroundColor3 = FSlib.Theme.Background,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 10, 0, 10),
-        Size = UDim2.new(0, 200, 0, 22),
+        Size = UDim2.new(0, 280, 0, 26),
     })
     BindToTheme(watermark, "BackgroundColor3", "Background")
     
@@ -1931,7 +1871,7 @@ function FSlib:CreateWatermark(options)
         Parent = watermark,
         BackgroundColor3 = FSlib.Theme.Primary,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 2, 1, 0),
+        Size = UDim2.new(0, 3, 1, 0),
     })
     BindToTheme(accent, "BackgroundColor3", "Primary")
     
@@ -1939,17 +1879,16 @@ function FSlib:CreateWatermark(options)
         Name = "Text",
         Parent = watermark,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 8, 0, 0),
-        Size = UDim2.new(1, -16, 1, 0),
+        Position = UDim2.new(0, 12, 0, 0),
+        Size = UDim2.new(1, -24, 1, 0),
         Font = Enum.Font.Code,
-        Text = name .. " | FPS: 60 | Ping: 0ms",
+        Text = name .. "  |  FPS: 60  |  Ping: 0ms  |  00:00:00",
         TextColor3 = FSlib.Theme.Text,
-        TextSize = 10,
+        TextSize = 11,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     BindToTheme(text, "TextColor3", "Text")
     
-    -- Update watermark
     local lastUpdate = 0
     local fps = 60
     
@@ -1962,11 +1901,10 @@ function FSlib:CreateWatermark(options)
             lastUpdate = tick()
             local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
             local timeStr = os.date("%H:%M:%S")
-            text.Text = string.format("%s | FPS: %d | Ping: %dms | %s", name, fps, ping, timeStr)
+            text.Text = string.format("%s  |  FPS: %d  |  Ping: %dms  |  %s", name, fps, ping, timeStr)
             
-            -- Auto resize
-            local textWidth = text.TextBounds.X + 20
-            watermark.Size = UDim2.new(0, math.max(textWidth, 150), 0, 22)
+            local textWidth = text.TextBounds.X + 30
+            watermark.Size = UDim2.new(0, math.max(textWidth, 200), 0, 26)
         end
     end)
     
