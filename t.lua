@@ -6,7 +6,7 @@
     ██║     ███████║███████╗██║██████╔╝
     ╚═╝     ╚══════╝╚══════╝╚═╝╚═════╝ 
     
-    FriendShip.Lua (FSlib) v1.0.6
+    FriendShip.Lua (FSlib) v1.0.7
     A professional Roblox GUI Library
     
     GitHub: https://github.com/FSlib
@@ -14,7 +14,7 @@
 ]]
 
 local FSlib = {
-    _VERSION = "1.0.6",
+    _VERSION = "1.0.7",
     _NAME = "FriendShip.Lua",
     Flags = {},
     Windows = {},
@@ -429,16 +429,26 @@ function FSlib:CreateWindow(options)
             self.SectionCount = self.SectionCount + 1
             local parentColumn = side == "Left" and self.LeftColumn or self.RightColumn
             
-            -- Section Frame
+            -- Section Frame (容器)
             local sectionFrame = Create("Frame", {
                 Name = "Section_" .. sectionName,
                 Parent = parentColumn,
-                BackgroundTransparency = 1,
+                BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
+                BorderSizePixel = 0,
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
                 LayoutOrder = self.SectionCount,
                 ZIndex = 4,
             })
+            BindToTheme(sectionFrame, "BackgroundColor3", "BackgroundTertiary")
+            
+            -- Section 完整边框
+            local sectionStroke = Create("UIStroke", {
+                Parent = sectionFrame,
+                Color = FSlib.Theme.Border,
+                Thickness = 1,
+            })
+            BindToTheme(sectionStroke, "Color", "Border")
             
             -- Section Header
             local sectionHeader = Create("Frame", {
@@ -446,17 +456,23 @@ function FSlib:CreateWindow(options)
                 Parent = sectionFrame,
                 BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                 BorderSizePixel = 0,
+                Position = UDim2.new(0, 0, 0, 0),
                 Size = UDim2.new(1, 0, 0, 24),
                 ZIndex = 5,
             })
             BindToTheme(sectionHeader, "BackgroundColor3", "BackgroundSecondary")
             
-            local headerStroke = Create("UIStroke", {
+            -- Header 底部边框线
+            local headerBorder = Create("Frame", {
+                Name = "Border",
                 Parent = sectionHeader,
-                Color = FSlib.Theme.Border,
-                Thickness = 1,
+                BackgroundColor3 = FSlib.Theme.Border,
+                BorderSizePixel = 0,
+                Position = UDim2.new(0, 0, 1, -1),
+                Size = UDim2.new(1, 0, 0, 1),
+                ZIndex = 6,
             })
-            BindToTheme(headerStroke, "Color", "Border")
+            BindToTheme(headerBorder, "BackgroundColor3", "Border")
             
             local sectionTitle = Create("TextLabel", {
                 Name = "Title",
@@ -473,32 +489,12 @@ function FSlib:CreateWindow(options)
             })
             BindToTheme(sectionTitle, "TextColor3", "Primary")
             
-            -- Section Content
-            local sectionContent = Create("Frame", {
-                Name = "Content",
-                Parent = sectionFrame,
-                BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 0, 0, 23),
-                Size = UDim2.new(1, 0, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y,
-                ZIndex = 4,
-            })
-            BindToTheme(sectionContent, "BackgroundColor3", "BackgroundTertiary")
-            
-            local contentStroke = Create("UIStroke", {
-                Parent = sectionContent,
-                Color = FSlib.Theme.Border,
-                Thickness = 1,
-            })
-            BindToTheme(contentStroke, "Color", "Border")
-            
-            -- Elements Holder
+            -- Elements Holder (元素容器)
             local elementsHolder = Create("Frame", {
                 Name = "Elements",
-                Parent = sectionContent,
+                Parent = sectionFrame,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 8, 0, 8),
+                Position = UDim2.new(0, 8, 0, 32),
                 Size = UDim2.new(1, -16, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
                 ZIndex = 5,
@@ -510,11 +506,20 @@ function FSlib:CreateWindow(options)
                 Padding = UDim.new(0, 6),
             })
             
-            -- 底部 Padding 增加，确保容器包住所有内容
-            Create("UIPadding", {
-                Parent = sectionContent,
-                PaddingBottom = UDim.new(0, 12),
+            -- 底部 Padding
+            local bottomPadding = Create("Frame", {
+                Name = "BottomPadding",
+                Parent = sectionFrame,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 12),
+                LayoutOrder = 999999,
+                ZIndex = 5,
             })
+            
+            -- 监听 elementsHolder 大小变化，更新 bottomPadding 位置
+            elementsHolder:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+                bottomPadding.Position = UDim2.new(0, 0, 0, 32 + elementsHolder.AbsoluteSize.Y)
+            end)
             
             local Section = {
                 Frame = sectionFrame,
@@ -557,19 +562,13 @@ function FSlib:CreateWindow(options)
                     Size = UDim2.new(0, 12, 0, 12),
                     ZIndex = 11,
                 })
-                -- 如果是关，使用 BackgroundSecondary；开，使用 Primary
-                -- 初始颜色设置
-                if value then
-                    BindToTheme(toggleBox, "BackgroundColor3", "Primary")
-                else
-                    BindToTheme(toggleBox, "BackgroundColor3", "BackgroundSecondary")
-                end
                 
-                Create("UIStroke", {
+                local toggleStroke = Create("UIStroke", {
                     Parent = toggleBox,
                     Color = FSlib.Theme.Border,
                     Thickness = 1,
                 })
+                BindToTheme(toggleStroke, "Color", "Border")
                 
                 local toggleLabel = Create("TextLabel", {
                     Name = "Label",
@@ -598,10 +597,8 @@ function FSlib:CreateWindow(options)
                 local function updateToggle()
                     if value then
                         Tween(toggleBox, { BackgroundColor3 = FSlib.Theme.Primary }, 0.15)
-                        BindToTheme(toggleBox, "BackgroundColor3", "Primary")
                     else
                         Tween(toggleBox, { BackgroundColor3 = FSlib.Theme.BackgroundSecondary }, 0.15)
-                        BindToTheme(toggleBox, "BackgroundColor3", "BackgroundSecondary")
                     end
                     
                     if flag then
@@ -868,6 +865,7 @@ function FSlib:CreateWindow(options)
                 })
                 BindToTheme(dropdownArrow, "TextColor3", "TextDark")
                 
+                -- Overlay (点击外部关闭)
                 local dropdownOverlay = Create("TextButton", {
                     Name = "Overlay_" .. name,
                     Parent = screenGui,
@@ -875,9 +873,10 @@ function FSlib:CreateWindow(options)
                     Size = UDim2.new(1, 0, 1, 0),
                     Text = "",
                     Visible = false,
-                    ZIndex = 999,
+                    ZIndex = 998,
                 })
                 
+                -- Dropdown List
                 local dropdownList = Create("Frame", {
                     Name = "List_" .. name,
                     Parent = screenGui,
@@ -887,8 +886,8 @@ function FSlib:CreateWindow(options)
                     Size = UDim2.new(0, 0, 0, 0),
                     ClipsDescendants = true,
                     Visible = false,
-                    ZIndex = 1000,
-                    Active = true, -- 防止点击穿透
+                    ZIndex = 999,
+                    Active = true,
                 })
                 BindToTheme(dropdownList, "BackgroundColor3", "BackgroundSecondary")
                 
@@ -898,17 +897,20 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                local listContent = Create("Frame", {
-                    Name = "Content",
+                local listScroll = Create("ScrollingFrame", {
+                    Name = "Scroll",
                     Parent = dropdownList,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 0),
-                    AutomaticSize = Enum.AutomaticSize.Y,
-                    ZIndex = 1001,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    CanvasSize = UDim2.new(0, 0, 0, 0),
+                    ScrollBarThickness = 2,
+                    ScrollBarImageColor3 = FSlib.Theme.Primary,
+                    ZIndex = 1000,
+                    AutomaticCanvasSize = Enum.AutomaticSize.Y,
                 })
                 
                 Create("UIListLayout", {
-                    Parent = listContent,
+                    Parent = listScroll,
                     SortOrder = Enum.SortOrder.LayoutOrder,
                 })
                 
@@ -919,8 +921,15 @@ function FSlib:CreateWindow(options)
                     dropdownList.Size = UDim2.new(0, absSize.X, 0, math.min(#items * 24, 150))
                 end
                 
+                local function closeDropdown()
+                    isOpen = false
+                    dropdownList.Visible = false
+                    dropdownOverlay.Visible = false
+                    dropdownArrow.Text = "▼"
+                end
+                
                 local function createItems()
-                    for _, child in ipairs(listContent:GetChildren()) do
+                    for _, child in ipairs(listScroll:GetChildren()) do
                         if child:IsA("TextButton") then
                             child:Destroy()
                         end
@@ -929,7 +938,7 @@ function FSlib:CreateWindow(options)
                     for i, item in ipairs(items) do
                         local itemButton = Create("TextButton", {
                             Name = "Item_" .. tostring(item),
-                            Parent = listContent,
+                            Parent = listScroll,
                             BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                             BackgroundTransparency = 0,
                             BorderSizePixel = 0,
@@ -940,7 +949,7 @@ function FSlib:CreateWindow(options)
                             TextSize = 12,
                             TextXAlignment = Enum.TextXAlignment.Left,
                             LayoutOrder = i,
-                            ZIndex = 1002,
+                            ZIndex = 1001,
                         })
                         
                         itemButton.MouseEnter:Connect(function()
@@ -964,13 +973,6 @@ function FSlib:CreateWindow(options)
                 end
                 
                 createItems()
-                
-                local function closeDropdown()
-                    isOpen = false
-                    dropdownList.Visible = false
-                    dropdownOverlay.Visible = false
-                    dropdownArrow.Text = "▼"
-                end
                 
                 dropdownOverlay.MouseButton1Click:Connect(function()
                     closeDropdown()
@@ -1167,26 +1169,17 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                local colorOverlay = Create("TextButton", {
-                    Name = "ColorOverlay_" .. name,
-                    Parent = screenGui,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 1, 0),
-                    Text = "",
-                    Visible = false,
-                    ZIndex = 1999,
-                })
-                
+                -- Picker Panel (在 ScreenGui 上)
                 local pickerPanel = Create("Frame", {
                     Name = "ColorPanel_" .. name,
                     Parent = screenGui,
                     BackgroundColor3 = FSlib.Theme.Background,
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 0, 0, 0),
-                    Size = UDim2.new(0, 180, 0, 160),
+                    Size = UDim2.new(0, 200, 0, 170),
                     Visible = false,
-                    ZIndex = 2000,
-                    Active = true, -- 防止点击穿透
+                    ZIndex = 5000,
+                    Active = true,
                 })
                 BindToTheme(pickerPanel, "BackgroundColor3", "Background")
                 
@@ -1199,27 +1192,29 @@ function FSlib:CreateWindow(options)
                 local function updatePickerPosition()
                     local absPos = colorPreview.AbsolutePosition
                     local absSize = colorPreview.AbsoluteSize
-                    pickerPanel.Position = UDim2.new(0, absPos.X - 145, 0, absPos.Y + absSize.Y + 4)
+                    pickerPanel.Position = UDim2.new(0, absPos.X - 165, 0, absPos.Y + absSize.Y + 4)
                 end
                 
+                -- SV Picker (色相饱和度)
                 local svPicker = Create("Frame", {
                     Name = "SVPicker",
                     Parent = pickerPanel,
                     BackgroundColor3 = Color3.fromHSV(hue, 1, 1),
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 8, 0, 8),
-                    Size = UDim2.new(0, 140, 0, 100),
-                    ZIndex = 2001,
+                    Size = UDim2.new(0, 150, 0, 100),
+                    ZIndex = 5001,
                     Active = true,
                 })
                 
+                -- 白色渐变 (左到右)
                 local satGradient = Create("Frame", {
                     Name = "SatGradient",
                     Parent = svPicker,
                     BackgroundColor3 = Color3.new(1, 1, 1),
                     BorderSizePixel = 0,
                     Size = UDim2.new(1, 0, 1, 0),
-                    ZIndex = 2002,
+                    ZIndex = 5002,
                 })
                 
                 Create("UIGradient", {
@@ -1234,18 +1229,19 @@ function FSlib:CreateWindow(options)
                     }),
                 })
                 
-                local svOverlay = Create("Frame", {
-                    Name = "Overlay",
+                -- 黑色渐变 (上到下)
+                local valOverlay = Create("Frame", {
+                    Name = "ValOverlay",
                     Parent = svPicker,
                     BackgroundColor3 = Color3.new(0, 0, 0),
                     BackgroundTransparency = 0,
                     BorderSizePixel = 0,
                     Size = UDim2.new(1, 0, 1, 0),
-                    ZIndex = 2003,
+                    ZIndex = 5003,
                 })
                 
                 Create("UIGradient", {
-                    Parent = svOverlay,
+                    Parent = valOverlay,
                     Transparency = NumberSequence.new({
                         NumberSequenceKeypoint.new(0, 1),
                         NumberSequenceKeypoint.new(1, 0)
@@ -1253,20 +1249,15 @@ function FSlib:CreateWindow(options)
                     Rotation = 90,
                 })
                 
+                -- SV Cursor
                 local svCursor = Create("Frame", {
                     Name = "Cursor",
                     Parent = svPicker,
                     BackgroundColor3 = Color3.new(1, 1, 1),
                     BorderSizePixel = 0,
-                    Position = UDim2.new(sat, -4, 1 - val, -4),
-                    Size = UDim2.new(0, 8, 0, 8),
-                    ZIndex = 2004,
-                })
-                
-                Create("UIStroke", {
-                    Parent = svCursor,
-                    Color = Color3.new(0, 0, 0),
-                    Thickness = 1,
+                    Position = UDim2.new(sat, -5, 1 - val, -5),
+                    Size = UDim2.new(0, 10, 0, 10),
+                    ZIndex = 5004,
                 })
                 
                 Create("UICorner", {
@@ -1274,14 +1265,31 @@ function FSlib:CreateWindow(options)
                     CornerRadius = UDim.new(1, 0),
                 })
                 
+                Create("UIStroke", {
+                    Parent = svCursor,
+                    Color = Color3.new(0, 0, 0),
+                    Thickness = 2,
+                })
+                
+                -- SV Click Area
+                local svClickArea = Create("TextButton", {
+                    Name = "ClickArea",
+                    Parent = svPicker,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    Text = "",
+                    ZIndex = 5005,
+                })
+                
+                -- Hue Picker
                 local huePicker = Create("Frame", {
                     Name = "HuePicker",
                     Parent = pickerPanel,
                     BackgroundColor3 = Color3.new(1, 1, 1),
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 156, 0, 8),
-                    Size = UDim2.new(0, 16, 0, 100),
-                    ZIndex = 2001,
+                    Position = UDim2.new(0, 166, 0, 8),
+                    Size = UDim2.new(0, 18, 0, 100),
+                    ZIndex = 5001,
                     Active = true,
                 })
                 
@@ -1299,6 +1307,13 @@ function FSlib:CreateWindow(options)
                     Rotation = 90,
                 })
                 
+                Create("UIStroke", {
+                    Parent = huePicker,
+                    Color = FSlib.Theme.Border,
+                    Thickness = 1,
+                })
+                
+                -- Hue Cursor
                 local hueCursor = Create("Frame", {
                     Name = "Cursor",
                     Parent = huePicker,
@@ -1306,27 +1321,38 @@ function FSlib:CreateWindow(options)
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, -2, hue, -2),
                     Size = UDim2.new(1, 4, 0, 4),
-                    ZIndex = 2002,
+                    ZIndex = 5002,
                 })
                 
                 Create("UIStroke", {
                     Parent = hueCursor,
                     Color = Color3.new(1, 1, 1),
-                    Thickness = 1,
+                    Thickness = 2,
                 })
                 
+                -- Hue Click Area
+                local hueClickArea = Create("TextButton", {
+                    Name = "ClickArea",
+                    Parent = huePicker,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 1, 0),
+                    Text = "",
+                    ZIndex = 5003,
+                })
+                
+                -- Hex Input
                 local hexInput = Create("TextBox", {
                     Name = "HexInput",
                     Parent = pickerPanel,
                     BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 8, 0, 116),
-                    Size = UDim2.new(0, 80, 0, 20),
+                    Size = UDim2.new(0, 80, 0, 22),
                     Font = Enum.Font.Code,
-                    Text = "#" .. string.format("%02X%02X%02X", value.R * 255, value.G * 255, value.B * 255),
+                    Text = "#" .. string.format("%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255)),
                     TextColor3 = FSlib.Theme.Text,
                     TextSize = 11,
-                    ZIndex = 2001,
+                    ZIndex = 5001,
                     ClearTextOnFocus = false,
                 })
                 BindToTheme(hexInput, "BackgroundColor3", "BackgroundSecondary")
@@ -1338,22 +1364,24 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
+                -- Apply Button
                 local applyButton = Create("TextButton", {
                     Name = "Apply",
                     Parent = pickerPanel,
                     BackgroundColor3 = FSlib.Theme.Primary,
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 96, 0, 116),
-                    Size = UDim2.new(0, 76, 0, 20),
+                    Size = UDim2.new(0, 88, 0, 22),
                     Font = Enum.Font.GothamBold,
                     Text = "APPLY",
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 10,
-                    ZIndex = 2001,
+                    TextSize = 11,
+                    ZIndex = 5001,
                 })
                 BindToTheme(applyButton, "BackgroundColor3", "Primary")
                 BindToTheme(applyButton, "TextColor3", "Text")
                 
+                -- Presets
                 local presets = {
                     Color3.fromRGB(255, 0, 0),
                     Color3.fromRGB(255, 128, 0),
@@ -1361,10 +1389,12 @@ function FSlib:CreateWindow(options)
                     Color3.fromRGB(0, 255, 0),
                     Color3.fromRGB(0, 255, 255),
                     Color3.fromRGB(0, 128, 255),
+                    Color3.fromRGB(0, 0, 255),
                     Color3.fromRGB(128, 0, 255),
                     Color3.fromRGB(255, 0, 255),
                     Color3.fromRGB(255, 255, 255),
                     Color3.fromRGB(128, 128, 128),
+                    Color3.fromRGB(0, 0, 0),
                 }
                 
                 for i, presetColor in ipairs(presets) do
@@ -1373,10 +1403,16 @@ function FSlib:CreateWindow(options)
                         Parent = pickerPanel,
                         BackgroundColor3 = presetColor,
                         BorderSizePixel = 0,
-                        Position = UDim2.new(0, 8 + ((i - 1) % 10) * 16, 0, 142),
-                        Size = UDim2.new(0, 14, 0, 12),
+                        Position = UDim2.new(0, 8 + ((i - 1) % 12) * 15, 0, 146),
+                        Size = UDim2.new(0, 13, 0, 16),
                         Text = "",
-                        ZIndex = 2001,
+                        ZIndex = 5001,
+                    })
+                    
+                    Create("UIStroke", {
+                        Parent = presetButton,
+                        Color = FSlib.Theme.Border,
+                        Thickness = 1,
                     })
                     
                     presetButton.MouseButton1Click:Connect(function()
@@ -1384,14 +1420,9 @@ function FSlib:CreateWindow(options)
                         hue, sat, val = Color3.toHSV(presetColor)
                         colorPreview.BackgroundColor3 = value
                         svPicker.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-                        svCursor.Position = UDim2.new(sat, -4, 1 - val, -4)
+                        svCursor.Position = UDim2.new(sat, -5, 1 - val, -5)
                         hueCursor.Position = UDim2.new(0, -2, hue, -2)
                         hexInput.Text = "#" .. string.format("%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255))
-                        
-                        if flag then
-                            FSlib.Flags[flag] = value
-                        end
-                        callback(value)
                     end)
                 end
                 
@@ -1400,36 +1431,40 @@ function FSlib:CreateWindow(options)
                     colorPreview.BackgroundColor3 = value
                     svPicker.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
                     hexInput.Text = "#" .. string.format("%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255))
-                    
-                    if flag then
-                        FSlib.Flags[flag] = value
-                    end
-                    callback(value)
                 end
                 
                 local svDragging = false
+                local hueDragging = false
                 
-                svPicker.InputBegan:Connect(function(input)
+                svClickArea.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         svDragging = true
+                        local relX = math.clamp((input.Position.X - svPicker.AbsolutePosition.X) / svPicker.AbsoluteSize.X, 0, 1)
+                        local relY = math.clamp((input.Position.Y - svPicker.AbsolutePosition.Y) / svPicker.AbsoluteSize.Y, 0, 1)
+                        sat = relX
+                        val = 1 - relY
+                        svCursor.Position = UDim2.new(sat, -5, 1 - val, -5)
+                        updateColor()
                     end
                 end)
                 
-                svPicker.InputEnded:Connect(function(input)
+                svClickArea.InputEnded:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         svDragging = false
                     end
                 end)
                 
-                local hueDragging = false
-                
-                huePicker.InputBegan:Connect(function(input)
+                hueClickArea.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         hueDragging = true
+                        local relY = math.clamp((input.Position.Y - huePicker.AbsolutePosition.Y) / huePicker.AbsoluteSize.Y, 0, 1)
+                        hue = relY
+                        hueCursor.Position = UDim2.new(0, -2, hue, -2)
+                        updateColor()
                     end
                 end)
                 
-                huePicker.InputEnded:Connect(function(input)
+                hueClickArea.InputEnded:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         hueDragging = false
                     end
@@ -1442,7 +1477,7 @@ function FSlib:CreateWindow(options)
                             local relY = math.clamp((input.Position.Y - svPicker.AbsolutePosition.Y) / svPicker.AbsoluteSize.Y, 0, 1)
                             sat = relX
                             val = 1 - relY
-                            svCursor.Position = UDim2.new(sat, -4, 1 - val, -4)
+                            svCursor.Position = UDim2.new(sat, -5, 1 - val, -5)
                             updateColor()
                         elseif hueDragging then
                             local relY = math.clamp((input.Position.Y - huePicker.AbsolutePosition.Y) / huePicker.AbsoluteSize.Y, 0, 1)
@@ -1456,25 +1491,24 @@ function FSlib:CreateWindow(options)
                 local function closeColorPicker()
                     isOpen = false
                     pickerPanel.Visible = false
-                    colorOverlay.Visible = false
+                    
+                    if flag then
+                        FSlib.Flags[flag] = value
+                    end
+                    callback(value)
                 end
-                
-                colorOverlay.MouseButton1Click:Connect(function()
-                    closeColorPicker()
-                end)
                 
                 colorPreview.MouseButton1Click:Connect(function()
                     isOpen = not isOpen
                     pickerPanel.Visible = isOpen
-                    colorOverlay.Visible = isOpen
                     if isOpen then
                         updatePickerPosition()
                     end
                 end)
                 
+                -- 只有点击 Apply 才关闭面板
                 applyButton.MouseButton1Click:Connect(function()
                     closeColorPicker()
-                    updateColor()
                 end)
                 
                 hexInput.FocusLost:Connect(function()
@@ -1488,13 +1522,8 @@ function FSlib:CreateWindow(options)
                             hue, sat, val = Color3.toHSV(value)
                             colorPreview.BackgroundColor3 = value
                             svPicker.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-                            svCursor.Position = UDim2.new(sat, -4, 1 - val, -4)
+                            svCursor.Position = UDim2.new(sat, -5, 1 - val, -5)
                             hueCursor.Position = UDim2.new(0, -2, hue, -2)
-                            
-                            if flag then
-                                FSlib.Flags[flag] = value
-                            end
-                            callback(value)
                         end
                     end
                 end)
@@ -1505,7 +1534,7 @@ function FSlib:CreateWindow(options)
                         hue, sat, val = Color3.toHSV(newValue)
                         colorPreview.BackgroundColor3 = value
                         svPicker.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-                        svCursor.Position = UDim2.new(sat, -4, 1 - val, -4)
+                        svCursor.Position = UDim2.new(sat, -5, 1 - val, -5)
                         hueCursor.Position = UDim2.new(0, -2, hue, -2)
                         hexInput.Text = "#" .. string.format("%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255))
                         
@@ -1917,7 +1946,7 @@ function FSlib:CreateWatermark(options)
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 12, 0, 0),
         Size = UDim2.new(1, -24, 1, 0),
-        Font = Enum.Font.GothamMedium, -- 使用 Gotham
+        Font = Enum.Font.GothamMedium,
         Text = name .. "  |  FPS: 60  |  Ping: 0ms  |  00:00:00",
         TextColor3 = FSlib.Theme.Text,
         TextSize = 12,
