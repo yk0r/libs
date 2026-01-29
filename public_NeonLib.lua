@@ -123,6 +123,9 @@ function Neon:CreateWindow(options)
         Padding = UDim.new(0, 10)
     })
 
+    -- Main Container
+    -- We use a CanvasGroup or just careful layering. 
+    -- To fix "sharp corners", we ensure all inner frames touching edges have UICorner.
     local Main = Create("Frame", {
         Name = "Main",
         Parent = ScreenGui,
@@ -130,24 +133,25 @@ function Neon:CreateWindow(options)
         Position = UDim2.fromScale(0.5, 0.5),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Size = Size,
-        ClipsDescendants = true
+        ClipsDescendants = false -- Important for shadow/glow if we add it outside
     })
     
-    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = Main })
-    Create("UIStroke", { Parent = Main, Color = Neon.Theme.Item, Thickness = 1 })
+    Create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = Main })
+    Create("UIStroke", { Parent = Main, Color = Neon.Theme.Border, Thickness = 1 })
 
-    -- Glassmorphism glow
+    -- Glassmorphism glow (Behind content)
     local Glow = Create("ImageLabel", {
         Parent = Main,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, -15, 0, -15),
-        Size = UDim2.new(1, 30, 1, 30),
+        Position = UDim2.new(0, -50, 0, -50),
+        Size = UDim2.new(1, 100, 1, 100),
         Image = "rbxassetid://5028857084",
-        ImageColor3 = Color3.fromRGB(0, 0, 0),
-        ImageTransparency = 0.4,
+        ImageColor3 = Neon.Theme.Accent,
+        ImageTransparency = 0.9,
         ZIndex = -1
     })
-
+    
+    -- [ TOP BAR ]
     local TopBar = Create("Frame", {
         Name = "TopBar",
         Parent = Main,
@@ -155,26 +159,46 @@ function Neon:CreateWindow(options)
         Size = UDim2.new(1, 0, 0, 40),
         BorderSizePixel = 0
     })
+    -- Round top corners to match Main
+    Create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = TopBar })
     
+    -- Patch bottom of TopBar to be flat
+    local TopBarPatch = Create("Frame", {
+        Parent = TopBar,
+        BackgroundColor3 = Neon.Theme.BackgroundDark,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 1, -10),
+        Size = UDim2.new(1, 0, 0, 10)
+    })
+    
+    -- Title & Light Point
+    local LightPoint = Create("Frame", {
+        Parent = TopBar,
+        BackgroundColor3 = Neon.Theme.Accent,
+        Position = UDim2.new(0, 16, 0.5, -3),
+        Size = UDim2.fromOffset(6, 6),
+    })
+    Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = LightPoint })
+    
+    -- Glow for light point
+    local PointGlow = Create("UIStroke", {
+        Parent = LightPoint,
+        Color = Neon.Theme.Accent,
+        Thickness = 2,
+        Transparency = 0.6
+    })
+
     local TitleText = Create("TextLabel", {
         Parent = TopBar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 46, 0, 0),
+        Position = UDim2.new(0, 32, 0, 0), -- Adjusted pos
         Size = UDim2.new(0, 200, 1, 0),
         Font = Enum.Font.GothamBold,
         Text = string.upper(Title),
         TextColor3 = Neon.Theme.Text,
-        TextSize = 14,
+        TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left
     })
-    
-    local Logo = Create("Frame", {
-        Parent = TopBar,
-        BackgroundColor3 = Neon.Theme.Accent,
-        Position = UDim2.new(0, 16, 0.5, -8),
-        Size = UDim2.fromOffset(16, 16)
-    })
-    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Logo })
     
     local CloseBtn = Create("TextButton", {
         Parent = TopBar,
@@ -198,17 +222,42 @@ function Neon:CreateWindow(options)
         Parent = Main,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 0, 40),
-        Size = UDim2.new(1, 0, 1, -40)
+        Size = UDim2.new(1, 0, 1, -40),
+        ClipsDescendants = true -- Clip content
     })
-
+    
+    -- Corner fix for content area (bottom corners)
+    -- Actually Content doesn't have background, but Sidebar does.
+    
     local Sidebar = Create("ScrollingFrame", {
         Parent = Content,
-        BackgroundColor3 = Neon.Theme.BackgroundDark, -- Slightly darker sidebar
+        BackgroundColor3 = Neon.Theme.BackgroundDark,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 160, 1, 0),
+        Size = UDim2.new(0, 170, 1, 0),
         ScrollBarThickness = 0,
         AutomaticCanvasSize = Enum.AutomaticSize.Y,
         CanvasSize = UDim2.new(0,0,0,0)
+    })
+    
+    -- Round bottom-left corner of Sidebar to match Main
+    -- We can just round all, and patch the top
+    Create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = Sidebar })
+    
+    local SidebarPatch = Create("Frame", {
+        Parent = Sidebar,
+        BackgroundColor3 = Neon.Theme.BackgroundDark,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0, 10)
+    })
+    -- Also patch bottom-right of Sidebar because it should be flat (connecting to pages)
+    local SidebarPatch2 = Create("Frame", {
+        Parent = Sidebar,
+        BackgroundColor3 = Neon.Theme.BackgroundDark,
+        BorderSizePixel = 0,
+        AnchorPoint = Vector2.new(1, 1),
+        Position = UDim2.new(1, 0, 1, 0),
+        Size = UDim2.new(0, 10, 0, 10)
     })
     
     local SidebarLayout = Create("UIListLayout", {
@@ -227,8 +276,8 @@ function Neon:CreateWindow(options)
     local Pages = Create("Frame", {
         Parent = Content,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 160, 0, 0),
-        Size = UDim2.new(1, -160, 1, 0),
+        Position = UDim2.new(0, 170, 0, 0),
+        Size = UDim2.new(1, -170, 1, 0),
         ClipsDescendants = true
     })
 
@@ -290,7 +339,7 @@ function Neon:CreateWindow(options)
         Create("UIPadding", { Parent = Container, PaddingBottom = UDim.new(0, 10) })
 
         -- Intro Animation
-        Tween(Notif, TweenInfo.new(0.3), { BackgroundTransparency = 0 }) -- Actually dummy property
+        Tween(Notif, TweenInfo.new(0.3), { BackgroundTransparency = 0 }) 
         Tween(Container, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.fromScale(0, 0) })
         
         task.delay(duration, function()
@@ -364,8 +413,8 @@ function Neon:CreateWindow(options)
         Create("UIPadding", { 
             Parent = Page, 
             PaddingTop = UDim.new(0, 15), 
-            PaddingLeft = UDim.new(0, 15), 
-            PaddingRight = UDim.new(0, 15),
+            PaddingLeft = UDim.new(0, 20), 
+            PaddingRight = UDim.new(0, 20),
             PaddingBottom = UDim.new(0, 15)
         })
         Create("UIListLayout", {
@@ -829,8 +878,6 @@ function Neon:CreateWindow(options)
                 Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Preview })
                 Create("UIStroke", { Parent = Preview, Color = Neon.Theme.Border, Thickness = 1 })
 
-                -- Basic random color toggle for demo purposes in this single file version
-                -- Real HSV picker requires more UI space, kept simple for robustness
                 Preview.MouseButton1Click:Connect(function()
                     local r = math.random()
                     local g = math.random()
