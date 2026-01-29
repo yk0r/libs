@@ -236,32 +236,50 @@ function PhantomUI:CreateWindow(options)
     })
     AddCorner(AccentLine, 1)
     
+    -- Title Container (to properly layout title and subtitle)
+    local TitleContainer = Create("Frame", {
+        Name = "TitleContainer",
+        Size = UDim2.new(0, 0, 0, 20),
+        Position = UDim2.new(0, 14, 0.5, -10),
+        AutomaticSize = Enum.AutomaticSize.X,
+        BackgroundTransparency = 1,
+        Parent = Header
+    })
+    
+    local TitleLayout = Create("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        Padding = UDim.new(0, 8),
+        Parent = TitleContainer
+    })
+    
     -- Title
     local TitleLabel = Create("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(0.5, 0, 1, 0),
-        Position = UDim2.new(0, 14, 0, 0),
+        Size = UDim2.new(0, 0, 0, 20),
+        AutomaticSize = Enum.AutomaticSize.X,
         BackgroundTransparency = 1,
         Text = title,
         TextColor3 = theme.Text,
         TextSize = 15,
         Font = Enum.Font.GothamBold,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = Header
+        LayoutOrder = 1,
+        Parent = TitleContainer
     })
     
     -- Subtitle
     local SubtitleLabel = Create("TextLabel", {
         Name = "Subtitle",
-        Size = UDim2.new(0, 100, 1, 0),
-        Position = UDim2.new(0, 14 + TitleLabel.TextBounds.X + 8, 0, 1),
+        Size = UDim2.new(0, 0, 0, 20),
+        AutomaticSize = Enum.AutomaticSize.X,
         BackgroundTransparency = 1,
         Text = subtitle,
         TextColor3 = theme.TextDim,
         TextSize = 11,
         Font = Enum.Font.Gotham,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = Header
+        LayoutOrder = 2,
+        Parent = TitleContainer
     })
     
     -- Keybind Hint
@@ -893,6 +911,7 @@ function PhantomUI:CreateWindow(options)
                     Size = UDim2.new(1, 0, 0, 48),
                     BackgroundTransparency = 1,
                     ClipsDescendants = false,
+                    ZIndex = 5,
                     LayoutOrder = elementCount,
                     Parent = SectionContent
                 })
@@ -906,6 +925,7 @@ function PhantomUI:CreateWindow(options)
                     TextSize = 11,
                     Font = Enum.Font.Gotham,
                     TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 5,
                     Parent = Dropdown
                 })
                 
@@ -916,6 +936,7 @@ function PhantomUI:CreateWindow(options)
                     BorderSizePixel = 0,
                     Text = "",
                     AutoButtonColor = false,
+                    ZIndex = 5,
                     Parent = Dropdown
                 })
                 AddCorner(DropdownButton, 4)
@@ -931,6 +952,7 @@ function PhantomUI:CreateWindow(options)
                     Font = Enum.Font.Gotham,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     TextTruncate = Enum.TextTruncate.AtEnd,
+                    ZIndex = 5,
                     Parent = DropdownButton
                 })
                 
@@ -942,17 +964,21 @@ function PhantomUI:CreateWindow(options)
                     TextColor3 = theme.TextDim,
                     TextSize = 8,
                     Font = Enum.Font.GothamBold,
+                    ZIndex = 5,
                     Parent = DropdownButton
                 })
                 
+                -- Options Container - 放在 ScreenGui 上而不是 Dropdown 内
                 local OptionsContainer = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 0),
-                    Position = UDim2.new(0, 0, 0, 48),
+                    Name = name .. "_Options",
+                    Size = UDim2.new(0, 0, 0, 0),
+                    Position = UDim2.new(0, 0, 0, 0),
                     BackgroundColor3 = theme.Surface,
                     BorderSizePixel = 0,
                     ClipsDescendants = true,
-                    ZIndex = 10,
-                    Parent = Dropdown
+                    Visible = false,
+                    ZIndex = 100,
+                    Parent = ScreenGui
                 })
                 AddCorner(OptionsContainer, 4)
                 AddStroke(OptionsContainer, theme.BorderLight, 1)
@@ -990,7 +1016,7 @@ function PhantomUI:CreateWindow(options)
                             Font = Enum.Font.Gotham,
                             AutoButtonColor = false,
                             LayoutOrder = i,
-                            ZIndex = 11,
+                            ZIndex = 101,
                             Parent = OptionsContainer
                         })
                         AddCorner(OptionBtn, 3)
@@ -1025,7 +1051,7 @@ function PhantomUI:CreateWindow(options)
                             
                             -- Close
                             isOpen = false
-                            Tween(OptionsContainer, {Size = UDim2.new(1, 0, 0, 0)}, 0.15)
+                            OptionsContainer.Visible = false
                             Tween(Arrow, {Rotation = 0}, 0.15)
                         end)
                     end
@@ -1033,14 +1059,49 @@ function PhantomUI:CreateWindow(options)
                 
                 createOptions()
                 
+                local function updateOptionsPosition()
+                    local btnPos = DropdownButton.AbsolutePosition
+                    local btnSize = DropdownButton.AbsoluteSize
+                    OptionsContainer.Position = UDim2.new(0, btnPos.X, 0, btnPos.Y + btnSize.Y + 2)
+                    OptionsContainer.Size = UDim2.new(0, btnSize.X, 0, math.min(#options * 24 + 4, 150))
+                end
+                
                 local function toggleDropdown()
                     isOpen = not isOpen
-                    local height = isOpen and math.min(#options * 24 + 4, 150) or 0
-                    Tween(OptionsContainer, {Size = UDim2.new(1, 0, 0, height)}, 0.15)
+                    if isOpen then
+                        updateOptionsPosition()
+                        OptionsContainer.Visible = true
+                    else
+                        OptionsContainer.Visible = false
+                    end
                     Tween(Arrow, {Rotation = isOpen and 180 or 0}, 0.15)
                 end
                 
                 DropdownButton.MouseButton1Click:Connect(toggleDropdown)
+                
+                -- 点击其他地方关闭下拉
+                UserInputService.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        if isOpen then
+                            local mousePos = UserInputService:GetMouseLocation()
+                            local optPos = OptionsContainer.AbsolutePosition
+                            local optSize = OptionsContainer.AbsoluteSize
+                            local btnPos = DropdownButton.AbsolutePosition
+                            local btnSize = DropdownButton.AbsoluteSize
+                            
+                            local inOptions = mousePos.X >= optPos.X and mousePos.X <= optPos.X + optSize.X and
+                                             mousePos.Y >= optPos.Y and mousePos.Y <= optPos.Y + optSize.Y
+                            local inButton = mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and
+                                            mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y
+                            
+                            if not inOptions and not inButton then
+                                isOpen = false
+                                OptionsContainer.Visible = false
+                                Tween(Arrow, {Rotation = 0}, 0.15)
+                            end
+                        end
+                    end
+                end)
                 
                 local dropdownObj = {}
                 function dropdownObj:Set(value)
@@ -1105,6 +1166,7 @@ function PhantomUI:CreateWindow(options)
                     Size = UDim2.new(1, 0, 0, 48),
                     BackgroundTransparency = 1,
                     ClipsDescendants = false,
+                    ZIndex = 5,
                     LayoutOrder = elementCount,
                     Parent = SectionContent
                 })
@@ -1118,6 +1180,7 @@ function PhantomUI:CreateWindow(options)
                     TextSize = 11,
                     Font = Enum.Font.Gotham,
                     TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 5,
                     Parent = MultiDropdown
                 })
                 
@@ -1128,6 +1191,7 @@ function PhantomUI:CreateWindow(options)
                     BorderSizePixel = 0,
                     Text = "",
                     AutoButtonColor = false,
+                    ZIndex = 5,
                     Parent = MultiDropdown
                 })
                 AddCorner(MultiButton, 4)
@@ -1143,6 +1207,7 @@ function PhantomUI:CreateWindow(options)
                     Font = Enum.Font.Gotham,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     TextTruncate = Enum.TextTruncate.AtEnd,
+                    ZIndex = 5,
                     Parent = MultiButton
                 })
                 
@@ -1154,17 +1219,21 @@ function PhantomUI:CreateWindow(options)
                     TextColor3 = theme.TextDim,
                     TextSize = 8,
                     Font = Enum.Font.GothamBold,
+                    ZIndex = 5,
                     Parent = MultiButton
                 })
                 
+                -- Options Container - 放在 ScreenGui 上
                 local MultiOptions = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 0),
-                    Position = UDim2.new(0, 0, 0, 48),
+                    Name = name .. "_MultiOptions",
+                    Size = UDim2.new(0, 0, 0, 0),
+                    Position = UDim2.new(0, 0, 0, 0),
                     BackgroundColor3 = theme.Surface,
                     BorderSizePixel = 0,
                     ClipsDescendants = true,
-                    ZIndex = 10,
-                    Parent = MultiDropdown
+                    Visible = false,
+                    ZIndex = 100,
+                    Parent = ScreenGui
                 })
                 AddCorner(MultiOptions, 4)
                 AddStroke(MultiOptions, theme.BorderLight, 1)
@@ -1183,7 +1252,7 @@ function PhantomUI:CreateWindow(options)
                     Parent = MultiOptions
                 })
                 
-                local function createOptions()
+                local function createMultiOptions()
                     for _, child in ipairs(MultiOptions:GetChildren()) do
                         if child:IsA("Frame") then
                             child:Destroy()
@@ -1195,7 +1264,7 @@ function PhantomUI:CreateWindow(options)
                             Size = UDim2.new(1, 0, 0, 24),
                             BackgroundTransparency = 1,
                             LayoutOrder = i,
-                            ZIndex = 11,
+                            ZIndex = 101,
                             Parent = MultiOptions
                         })
                         
@@ -1204,7 +1273,7 @@ function PhantomUI:CreateWindow(options)
                             Position = UDim2.new(0, 4, 0.5, -7),
                             BackgroundColor3 = selected[option] and theme.Accent or theme.SurfaceAlt,
                             BorderSizePixel = 0,
-                            ZIndex = 12,
+                            ZIndex = 102,
                             Parent = OptionFrame
                         })
                         AddCorner(Checkbox, 3)
@@ -1218,7 +1287,7 @@ function PhantomUI:CreateWindow(options)
                             TextSize = 10,
                             Font = Enum.Font.GothamBold,
                             TextTransparency = selected[option] and 0 or 1,
-                            ZIndex = 13,
+                            ZIndex = 103,
                             Parent = Checkbox
                         })
                         
@@ -1231,7 +1300,7 @@ function PhantomUI:CreateWindow(options)
                             TextSize = 11,
                             Font = Enum.Font.Gotham,
                             TextXAlignment = Enum.TextXAlignment.Left,
-                            ZIndex = 12,
+                            ZIndex = 102,
                             Parent = OptionFrame
                         })
                         
@@ -1239,7 +1308,7 @@ function PhantomUI:CreateWindow(options)
                             Size = UDim2.new(1, 0, 1, 0),
                             BackgroundTransparency = 1,
                             Text = "",
-                            ZIndex = 14,
+                            ZIndex = 104,
                             Parent = OptionFrame
                         })
                         
@@ -1254,16 +1323,51 @@ function PhantomUI:CreateWindow(options)
                     end
                 end
                 
-                createOptions()
+                createMultiOptions()
+                
+                local function updateMultiPosition()
+                    local btnPos = MultiButton.AbsolutePosition
+                    local btnSize = MultiButton.AbsoluteSize
+                    MultiOptions.Position = UDim2.new(0, btnPos.X, 0, btnPos.Y + btnSize.Y + 2)
+                    MultiOptions.Size = UDim2.new(0, btnSize.X, 0, math.min(#options * 24 + 4, 150))
+                end
                 
                 local function toggleMulti()
                     isOpen = not isOpen
-                    local height = isOpen and math.min(#options * 24 + 4, 150) or 0
-                    Tween(MultiOptions, {Size = UDim2.new(1, 0, 0, height)}, 0.15)
+                    if isOpen then
+                        updateMultiPosition()
+                        MultiOptions.Visible = true
+                    else
+                        MultiOptions.Visible = false
+                    end
                     Tween(MultiArrow, {Rotation = isOpen and 180 or 0}, 0.15)
                 end
                 
                 MultiButton.MouseButton1Click:Connect(toggleMulti)
+                
+                -- 点击其他地方关闭
+                UserInputService.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        if isOpen then
+                            local mousePos = UserInputService:GetMouseLocation()
+                            local optPos = MultiOptions.AbsolutePosition
+                            local optSize = MultiOptions.AbsoluteSize
+                            local btnPos = MultiButton.AbsolutePosition
+                            local btnSize = MultiButton.AbsoluteSize
+                            
+                            local inOptions = mousePos.X >= optPos.X and mousePos.X <= optPos.X + optSize.X and
+                                             mousePos.Y >= optPos.Y and mousePos.Y <= optPos.Y + optSize.Y
+                            local inButton = mousePos.X >= btnPos.X and mousePos.X <= btnPos.X + btnSize.X and
+                                            mousePos.Y >= btnPos.Y and mousePos.Y <= btnPos.Y + btnSize.Y
+                            
+                            if not inOptions and not inButton then
+                                isOpen = false
+                                MultiOptions.Visible = false
+                                Tween(MultiArrow, {Rotation = 0}, 0.15)
+                            end
+                        end
+                    end
+                end)
                 
                 local multiObj = {}
                 function multiObj:Set(values)
@@ -1272,7 +1376,7 @@ function PhantomUI:CreateWindow(options)
                         selected[v] = true
                     end
                     SelectedText.Text = getSelectedText()
-                    createOptions()
+                    createMultiOptions()
                     callback(getSelectedArray())
                 end
                 function multiObj:Get()
@@ -1450,6 +1554,7 @@ function PhantomUI:CreateWindow(options)
                     Size = UDim2.new(1, 0, 0, 28),
                     BackgroundTransparency = 1,
                     ClipsDescendants = false,
+                    ZIndex = 5,
                     LayoutOrder = elementCount,
                     Parent = SectionContent
                 })
@@ -1463,6 +1568,7 @@ function PhantomUI:CreateWindow(options)
                     TextSize = 11,
                     Font = Enum.Font.Gotham,
                     TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 5,
                     Parent = ColorPicker
                 })
                 
@@ -1473,20 +1579,23 @@ function PhantomUI:CreateWindow(options)
                     BorderSizePixel = 0,
                     Text = "",
                     AutoButtonColor = false,
+                    ZIndex = 5,
                     Parent = ColorPicker
                 })
                 AddCorner(ColorPreview, 4)
                 AddStroke(ColorPreview, theme.BorderLight, 1)
                 
-                -- Picker Panel
+                -- Picker Panel - 放在 ScreenGui 上
                 local PickerPanel = Create("Frame", {
-                    Size = UDim2.new(0, 200, 0, 0),
-                    Position = UDim2.new(1, -200, 0, 30),
+                    Name = name .. "_Picker",
+                    Size = UDim2.new(0, 200, 0, 200),
+                    Position = UDim2.new(0, 0, 0, 0),
                     BackgroundColor3 = theme.Surface,
                     BorderSizePixel = 0,
                     ClipsDescendants = true,
-                    ZIndex = 20,
-                    Parent = ColorPicker
+                    Visible = false,
+                    ZIndex = 100,
+                    Parent = ScreenGui
                 })
                 AddCorner(PickerPanel, 6)
                 AddStroke(PickerPanel, theme.BorderLight, 1)
@@ -1716,9 +1825,51 @@ function PhantomUI:CreateWindow(options)
                 end)
                 
                 -- Toggle Picker
+                local function updatePickerPosition()
+                    local previewPos = ColorPreview.AbsolutePosition
+                    local previewSize = ColorPreview.AbsoluteSize
+                    -- 尝试在右侧显示，如果空间不够则在左侧
+                    local screenWidth = ScreenGui.AbsoluteSize.X
+                    local pickerX = previewPos.X + previewSize.X + 5
+                    if pickerX + 200 > screenWidth then
+                        pickerX = previewPos.X - 205
+                    end
+                    PickerPanel.Position = UDim2.new(0, pickerX, 0, previewPos.Y)
+                end
+                
                 ColorPreview.MouseButton1Click:Connect(function()
                     isOpen = not isOpen
-                    Tween(PickerPanel, {Size = UDim2.new(0, 200, 0, isOpen and 200 or 0)}, 0.2)
+                    if isOpen then
+                        updatePickerPosition()
+                        PickerPanel.Visible = true
+                    else
+                        PickerPanel.Visible = false
+                    end
+                end)
+                
+                -- 点击其他地方关闭
+                UserInputService.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        if isOpen and not svDragging and not hueDragging and not alphaDragging then
+                            task.defer(function()
+                                local mousePos = UserInputService:GetMouseLocation()
+                                local panelPos = PickerPanel.AbsolutePosition
+                                local panelSize = PickerPanel.AbsoluteSize
+                                local previewPos = ColorPreview.AbsolutePosition
+                                local previewSize = ColorPreview.AbsoluteSize
+                                
+                                local inPanel = mousePos.X >= panelPos.X and mousePos.X <= panelPos.X + panelSize.X and
+                                               mousePos.Y >= panelPos.Y and mousePos.Y <= panelPos.Y + panelSize.Y
+                                local inPreview = mousePos.X >= previewPos.X and mousePos.X <= previewPos.X + previewSize.X and
+                                                 mousePos.Y >= previewPos.Y and mousePos.Y <= previewPos.Y + previewSize.Y
+                                
+                                if not inPanel and not inPreview then
+                                    isOpen = false
+                                    PickerPanel.Visible = false
+                                end
+                            end)
+                        end
+                    end
                 end)
                 
                 local colorObj = {}
@@ -1897,29 +2048,46 @@ function PhantomUI:CreateWatermark(options)
     local theme = Themes[themeName] or Themes.Phantom
     local watermarkObj = {}
     
-    local ScreenGui = CoreGui:FindFirstChild("PhantomWatermark")
-    if ScreenGui then ScreenGui:Destroy() end
+    local WatermarkGui = CoreGui:FindFirstChild("PhantomWatermark")
+    if WatermarkGui then WatermarkGui:Destroy() end
     
-    ScreenGui = Create("ScreenGui", {
+    WatermarkGui = Create("ScreenGui", {
         Name = "PhantomWatermark",
         ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         Parent = CoreGui
     })
     
+    -- 计算需要显示的内容来确定宽度
+    local contentParts = {title}
+    if showUser then table.insert(contentParts, Player.Name) end
+    if showFPS then table.insert(contentParts, "000 fps") end
+    if showPing then table.insert(contentParts, "000 ms") end
+    if showTime then table.insert(contentParts, "00:00:00") end
+    
+    -- 估算宽度: 每个字符约7px + 分隔符16px
+    local estimatedWidth = 16 -- padding
+    for i, part in ipairs(contentParts) do
+        estimatedWidth = estimatedWidth + #part * 7
+        if i < #contentParts then
+            estimatedWidth = estimatedWidth + 16 -- separator
+        end
+    end
+    estimatedWidth = math.max(estimatedWidth, 100)
+    
     local Watermark = Create("Frame", {
         Name = "Watermark",
-        Size = UDim2.new(0, 0, 0, 26),
+        Size = UDim2.new(0, estimatedWidth, 0, 26),
         Position = position,
-        AutomaticSize = Enum.AutomaticSize.X,
         BackgroundColor3 = theme.Background,
         BorderSizePixel = 0,
-        Parent = ScreenGui
+        ClipsDescendants = true,
+        Parent = WatermarkGui
     })
     AddCorner(Watermark, 4)
     AddStroke(Watermark, theme.Border, 1)
     
-    -- Accent Line (inside)
+    -- Accent Line (inside, at top)
     local AccentLine = Create("Frame", {
         Size = UDim2.new(1, -8, 0, 2),
         Position = UDim2.new(0, 4, 0, 3),
@@ -1929,32 +2097,33 @@ function PhantomUI:CreateWatermark(options)
     })
     AddCorner(AccentLine, 1)
     
+    -- Content container
+    local ContentContainer = Create("Frame", {
+        Size = UDim2.new(1, -16, 1, -8),
+        Position = UDim2.new(0, 8, 0, 6),
+        BackgroundTransparency = 1,
+        Parent = Watermark
+    })
+    
     local ContentLayout = Create("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         SortOrder = Enum.SortOrder.LayoutOrder,
         VerticalAlignment = Enum.VerticalAlignment.Center,
         Padding = UDim.new(0, 0),
-        Parent = Watermark
+        Parent = ContentContainer
     })
     
-    local ContentPadding = Create("UIPadding", {
-        PaddingLeft = UDim.new(0, 8),
-        PaddingRight = UDim.new(0, 8),
-        PaddingTop = UDim.new(0, 4),
-        Parent = Watermark
-    })
-    
-    local function createText(text, order)
+    local function createText(text, order, isAccent)
+        local textWidth = #text * 7
         return Create("TextLabel", {
-            Size = UDim2.new(0, 0, 1, 0),
-            AutomaticSize = Enum.AutomaticSize.X,
+            Size = UDim2.new(0, textWidth, 1, 0),
             BackgroundTransparency = 1,
             Text = text,
-            TextColor3 = theme.Text,
+            TextColor3 = isAccent and theme.Accent or theme.Text,
             TextSize = 11,
-            Font = Enum.Font.GothamMedium,
+            Font = isAccent and Enum.Font.GothamBold or Enum.Font.GothamMedium,
             LayoutOrder = order,
-            Parent = Watermark
+            Parent = ContentContainer
         })
     end
     
@@ -1967,14 +2136,12 @@ function PhantomUI:CreateWatermark(options)
             TextSize = 11,
             Font = Enum.Font.Gotham,
             LayoutOrder = order,
-            Parent = Watermark
+            Parent = ContentContainer
         })
     end
     
     local order = 0
-    local TitleLabel = createText(title, order)
-    TitleLabel.TextColor3 = theme.Accent
-    TitleLabel.Font = Enum.Font.GothamBold
+    local TitleLabel = createText(title, order, true)
     
     local labels = {}
     
@@ -1990,6 +2157,7 @@ function PhantomUI:CreateWatermark(options)
         createSeparator(order)
         order = order + 1
         labels.fps = createText("0 fps", order)
+        labels.fps.Size = UDim2.new(0, 50, 1, 0)
     end
     
     if showPing then
@@ -1997,6 +2165,7 @@ function PhantomUI:CreateWatermark(options)
         createSeparator(order)
         order = order + 1
         labels.ping = createText("0 ms", order)
+        labels.ping.Size = UDim2.new(0, 45, 1, 0)
     end
     
     if showTime then
@@ -2004,7 +2173,19 @@ function PhantomUI:CreateWatermark(options)
         createSeparator(order)
         order = order + 1
         labels.time = createText("00:00:00", order)
+        labels.time.Size = UDim2.new(0, 60, 1, 0)
     end
+    
+    -- 根据实际内容调整宽度
+    task.defer(function()
+        local totalWidth = 16 -- padding
+        for _, child in ipairs(ContentContainer:GetChildren()) do
+            if child:IsA("TextLabel") then
+                totalWidth = totalWidth + child.Size.X.Offset
+            end
+        end
+        Watermark.Size = UDim2.new(0, totalWidth, 0, 26)
+    end)
     
     -- Update loop
     local lastUpdate = 0
@@ -2032,6 +2213,17 @@ function PhantomUI:CreateWatermark(options)
     
     function watermarkObj:SetTitle(newTitle)
         TitleLabel.Text = newTitle
+        TitleLabel.Size = UDim2.new(0, #newTitle * 7, 1, 0)
+        -- 重新计算宽度
+        task.defer(function()
+            local totalWidth = 16
+            for _, child in ipairs(ContentContainer:GetChildren()) do
+                if child:IsA("TextLabel") then
+                    totalWidth = totalWidth + child.Size.X.Offset
+                end
+            end
+            Watermark.Size = UDim2.new(0, totalWidth, 0, 26)
+        end)
     end
     
     function watermarkObj:Hide()
@@ -2043,7 +2235,7 @@ function PhantomUI:CreateWatermark(options)
     end
     
     function watermarkObj:Destroy()
-        ScreenGui:Destroy()
+        WatermarkGui:Destroy()
     end
     
     return watermarkObj
