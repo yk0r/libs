@@ -1,219 +1,365 @@
 -- NEON UI LIBRARY (Standalone)
--- A modern, retained-mode UI library for Roblox
--- Styled with a dark aesthetic and indigo accents
+-- Commercial Grade • Native Roblox GUI
+-- <https://github.com/YourRepo/NeonLib>
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
 
 local Neon = {}
 Neon.__index = Neon
 
--- Utility Functions
-local function MakeDraggable(topbarobject, object)
-	local Dragging = nil
-	local DragInput = nil
-	local DragStart = nil
-	local StartPosition = nil
+-- [ CONFIGURATION ] -----------------------------------------------------------
 
-	local function Update(input)
-		local Delta = input.Position - DragStart
-		local pos = UDim2.new(StartPosition.X.Scale, StartPosition.X.Offset + Delta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + Delta.Y)
-		object.Position = pos
-	end
+Neon.Theme = {
+    Accent = Color3.fromRGB(99, 102, 241),      -- Indigo 500
+    AccentDark = Color3.fromRGB(79, 70, 229),   -- Indigo 600
+    Background = Color3.fromRGB(24, 24, 27),    -- Zinc 900
+    BackgroundDark = Color3.fromRGB(9, 9, 11),  -- Zinc 950
+    Item = Color3.fromRGB(39, 39, 42),          -- Zinc 800
+    ItemActive = Color3.fromRGB(63, 63, 70),    -- Zinc 700
+    Text = Color3.fromRGB(244, 244, 245),       -- Zinc 100
+    TextDim = Color3.fromRGB(161, 161, 170),    -- Zinc 400
+    Border = Color3.fromRGB(63, 63, 70),        -- Zinc 700
+}
 
-	topbarobject.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			Dragging = true
-			DragStart = input.Position
-			StartPosition = object.Position
-			input.Changed:Connect(function()
-				if input.UserInputState == Enum.UserInputState.End then
-					Dragging = false
-				end
-			end)
-		end
-	end)
+Neon.Icons = {
+    Home = "rbxassetid://6026568198",
+    Settings = "rbxassetid://6031280882",
+    User = "rbxassetid://6026568248",
+    List = "rbxassetid://6031280896",
+    Search = "rbxassetid://6031154871",
+    Check = "rbxassetid://6031048436",
+    Down = "rbxassetid://6034818372",
+    Info = "rbxassetid://6031086096",
+    Warning = "rbxassetid://6031086166",
+    Error = "rbxassetid://6031086100",
+}
 
-	topbarobject.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-			DragInput = input
-		end
-	end)
+-- [ UTILITIES ] ---------------------------------------------------------------
 
-	UserInputService.InputChanged:Connect(function(input)
-		if input == DragInput and Dragging then
-			Update(input)
-		end
-	end)
-end
-
-local function Create(className, properties)
-    local instance = Instance.new(className)
-    for k, v in pairs(properties) do
+local function Create(class, props)
+    local instance = Instance.new(class)
+    for k, v in pairs(props) do
         instance[k] = v
     end
     return instance
 end
 
--- Library Methods
+local function Tween(instance, tweenInfo, goal)
+    local tween = TweenService:Create(instance, tweenInfo, goal)
+    tween:Play()
+    return tween
+end
+
+local function MakeDraggable(trigger, object)
+    local dragging, dragInput, dragStart, startPos
+    
+    trigger.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = object.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    trigger.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input == dragInput then
+            local delta = input.Position - dragStart
+            Tween(object, TweenInfo.new(0.05, Enum.EasingStyle.Sine, Enum.EasingDirection.Out), {
+                Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            })
+        end
+    end)
+end
+
+-- [ LIBRARY ] -----------------------------------------------------------------
 
 function Neon:CreateWindow(options)
     options = options or {}
-    local title = options.Title or "Neon UI"
+    local Title = options.Title or "Neon Interface"
+    local Size = options.Size or UDim2.fromOffset(700, 500)
     
+    -- Cleanup Old
+    if game.CoreGui:FindFirstChild("NeonUI") then
+        game.CoreGui.NeonUI:Destroy()
+    end
+
     local ScreenGui = Create("ScreenGui", {
         Name = "NeonUI",
         Parent = CoreGui,
         ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     })
-    
-    local MainFrame = Create("Frame", {
-        Name = "MainFrame",
+
+    local NotificationHolder = Create("Frame", {
+        Name = "Notifications",
         Parent = ScreenGui,
-        BackgroundColor3 = Color3.fromRGB(24, 24, 27), -- Zinc 900
-        BorderSizePixel = 0,
-        Position = UDim2.fromOffset(100, 100),
-        Size = UDim2.fromOffset(700, 500),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -20, 1, -20),
+        AnchorPoint = Vector2.new(1, 1),
+        Size = UDim2.new(0, 300, 1, 0),
+        ZIndex = 100
+    })
+    
+    local NotificationLayout = Create("UIListLayout", {
+        Parent = NotificationHolder,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        VerticalAlignment = Enum.VerticalAlignment.Bottom,
+        Padding = UDim.new(0, 10)
+    })
+
+    local Main = Create("Frame", {
+        Name = "Main",
+        Parent = ScreenGui,
+        BackgroundColor3 = Neon.Theme.Background,
+        Position = UDim2.fromScale(0.5, 0.5),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Size = Size,
         ClipsDescendants = true
     })
     
-    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = MainFrame })
-    Create("UIStroke", { 
-        Parent = MainFrame, 
-        Color = Color3.fromRGB(39, 39, 42), 
-        Thickness = 1 
-    })
-    
-    -- Header
-    local Header = Create("Frame", {
-        Name = "Header",
-        Parent = MainFrame,
-        BackgroundColor3 = Color3.fromRGB(9, 9, 11), -- Zinc 950
-        BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 40)
-    })
-    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = Header })
-    
-    -- Fix bottom corners of header to be square
-    local HeaderCover = Create("Frame", {
-        Parent = Header,
-        BackgroundColor3 = Color3.fromRGB(9, 9, 11),
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 1, -10),
-        Size = UDim2.new(1, 0, 0, 10)
+    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = Main })
+    Create("UIStroke", { Parent = Main, Color = Neon.Theme.Item, Thickness = 1 })
+
+    -- Glassmorphism glow
+    local Glow = Create("ImageLabel", {
+        Parent = Main,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, -15, 0, -15),
+        Size = UDim2.new(1, 30, 1, 30),
+        Image = "rbxassetid://5028857084",
+        ImageColor3 = Color3.fromRGB(0, 0, 0),
+        ImageTransparency = 0.4,
+        ZIndex = -1
     })
 
-    local TitleLabel = Create("TextLabel", {
-        Parent = Header,
+    local TopBar = Create("Frame", {
+        Name = "TopBar",
+        Parent = Main,
+        BackgroundColor3 = Neon.Theme.BackgroundDark,
+        Size = UDim2.new(1, 0, 0, 40),
+        BorderSizePixel = 0
+    })
+    
+    local TitleText = Create("TextLabel", {
+        Parent = TopBar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 16, 0, 0),
-        Size = UDim2.new(1, -32, 1, 0),
+        Position = UDim2.new(0, 46, 0, 0),
+        Size = UDim2.new(0, 200, 1, 0),
         Font = Enum.Font.GothamBold,
-        Text = string.upper(title),
-        TextColor3 = Color3.fromRGB(228, 228, 231),
+        Text = string.upper(Title),
+        TextColor3 = Neon.Theme.Text,
         TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left
     })
     
-    -- Accent Dot
-    local AccentDot = Create("Frame", {
-        Parent = Header,
-        BackgroundColor3 = Color3.fromRGB(99, 102, 241), -- Indigo 500
-        Position = UDim2.new(0, 8, 0.5, -2),
-        Size = UDim2.fromOffset(4, 4),
+    local Logo = Create("Frame", {
+        Parent = TopBar,
+        BackgroundColor3 = Neon.Theme.Accent,
+        Position = UDim2.new(0, 16, 0.5, -8),
+        Size = UDim2.fromOffset(16, 16)
     })
-    Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = AccentDot })
-
-    MakeDraggable(Header, MainFrame)
+    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Logo })
     
-    -- Content Container
-    local ContentContainer = Create("Frame", {
-        Parent = MainFrame,
+    local CloseBtn = Create("TextButton", {
+        Parent = TopBar,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -40, 0, 0),
+        Size = UDim2.new(0, 40, 1, 0),
+        Text = "×",
+        Font = Enum.Font.Gotham,
+        TextSize = 24,
+        TextColor3 = Neon.Theme.TextDim
+    })
+    
+    CloseBtn.MouseButton1Click:Connect(function()
+        ScreenGui:Destroy()
+    end)
+    
+    MakeDraggable(TopBar, Main)
+
+    -- Container for Tabs and Pages
+    local Content = Create("Frame", {
+        Parent = Main,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 0, 40),
         Size = UDim2.new(1, 0, 1, -40)
     })
-    
-    -- Sidebar
+
     local Sidebar = Create("ScrollingFrame", {
-        Parent = ContentContainer,
-        BackgroundColor3 = Color3.fromRGB(15, 15, 17),
+        Parent = Content,
+        BackgroundColor3 = Neon.Theme.BackgroundDark, -- Slightly darker sidebar
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 180, 1, 0),
+        Size = UDim2.new(0, 160, 1, 0),
         ScrollBarThickness = 0,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        AutomaticCanvasSize = Enum.AutomaticSize.Y
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        CanvasSize = UDim2.new(0,0,0,0)
     })
-    Create("UIPadding", { 
-        Parent = Sidebar, 
-        PaddingTop = UDim.new(0, 10), 
-        PaddingLeft = UDim.new(0, 10), 
-        PaddingRight = UDim.new(0, 10) 
-    })
+    
     local SidebarLayout = Create("UIListLayout", {
         Parent = Sidebar,
-        Padding = UDim.new(0, 5),
+        Padding = UDim.new(0, 4),
         SortOrder = Enum.SortOrder.LayoutOrder
     })
     
-    -- Pages Area
+    Create("UIPadding", { 
+        Parent = Sidebar, 
+        PaddingTop = UDim.new(0, 12),
+        PaddingLeft = UDim.new(0, 12),
+        PaddingRight = UDim.new(0, 12)
+    })
+
     local Pages = Create("Frame", {
-        Parent = ContentContainer,
+        Parent = Content,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 180, 0, 0),
-        Size = UDim2.new(1, -180, 1, 0),
+        Position = UDim2.new(0, 160, 0, 0),
+        Size = UDim2.new(1, -160, 1, 0),
         ClipsDescendants = true
     })
-    
-    local WindowObj = {}
-    local Tabs = {}
-    local FirstTab = true
-    
-    function WindowObj:CreateTab(options)
+
+    -- Library State
+    local Library = {
+        Tabs = {},
+        CurrentTab = nil,
+        Hidden = false
+    }
+
+    function Library:Notify(options)
         options = options or {}
-        local tabName = options.Name or "Tab"
-        local tabIcon = options.Icon or "rbxassetid://0" -- Placeholder
+        local title = options.Title or "Notification"
+        local text = options.Content or ""
+        local duration = options.Duration or 3
         
-        -- Tab Button
-        local TabButton = Create("TextButton", {
-            Parent = Sidebar,
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        local Notif = Create("Frame", {
+            Parent = NotificationHolder,
+            BackgroundColor3 = Neon.Theme.Item,
+            Size = UDim2.new(1, 0, 0, 0), -- Animate height
+            AutomaticSize = Enum.AutomaticSize.Y,
+            BackgroundTransparency = 1
+        })
+        
+        local Container = Create("Frame", {
+            Parent = Notif,
+            BackgroundColor3 = Neon.Theme.Background,
+            Size = UDim2.new(1, 0, 1, 0),
+            Position = UDim2.fromScale(1, 0) -- Animate X
+        })
+        Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = Container })
+        Create("UIStroke", { Parent = Container, Color = Neon.Theme.Border, Thickness = 1 })
+        
+        local NTitle = Create("TextLabel", {
+            Parent = Container,
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 32),
-            Font = Enum.Font.GothamMedium,
-            Text = "       " .. tabName,
-            TextColor3 = Color3.fromRGB(113, 113, 122), -- Zinc 500
+            Position = UDim2.new(0, 10, 0, 8),
+            Size = UDim2.new(1, -20, 0, 16),
+            Font = Enum.Font.GothamBold,
+            Text = title,
+            TextColor3 = Neon.Theme.Accent,
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left
+        })
+        
+        local NText = Create("TextLabel", {
+            Parent = Container,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 10, 0, 26),
+            Size = UDim2.new(1, -20, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Font = Enum.Font.Gotham,
+            Text = text,
+            TextColor3 = Neon.Theme.Text,
             TextSize = 12,
             TextXAlignment = Enum.TextXAlignment.Left,
+            TextWrapped = true
+        })
+        Create("UIPadding", { Parent = Container, PaddingBottom = UDim.new(0, 10) })
+
+        -- Intro Animation
+        Tween(Notif, TweenInfo.new(0.3), { BackgroundTransparency = 0 }) -- Actually dummy property
+        Tween(Container, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Position = UDim2.fromScale(0, 0) })
+        
+        task.delay(duration, function()
+            Tween(Container, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), { Position = UDim2.fromScale(1.2, 0) })
+            task.wait(0.5)
+            Notif:Destroy()
+        end)
+    end
+    
+    function Library:CreateTab(options)
+        options = options or {}
+        local Name = options.Name or "Tab"
+        local Icon = options.Icon or ""
+        
+        local TabBtn = Create("TextButton", {
+            Parent = Sidebar,
+            BackgroundColor3 = Color3.new(0,0,0),
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 34),
+            Text = "",
             AutoButtonColor = false
         })
-        Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = TabButton })
+        Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = TabBtn })
         
-        -- Active Indicator (Background Gradient)
-        local Gradient = Create("UIGradient", {
-            Parent = TabButton,
-            Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(79, 70, 229)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(67, 56, 202))
-            }),
-            Rotation = 0,
-            Enabled = false
+        local TabLabel = Create("TextLabel", {
+            Parent = TabBtn,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 36, 0, 0),
+            Size = UDim2.new(1, -36, 1, 0),
+            Font = Enum.Font.GothamMedium,
+            Text = Name,
+            TextColor3 = Neon.Theme.TextDim,
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left
         })
+
+        if Icon ~= "" and not Icon:match("rbxassetid") and Neon.Icons[Icon] then
+             Icon = Neon.Icons[Icon]
+        end
         
-        -- Page Frame
+        if Icon ~= "" then
+             local Ico = Create("ImageLabel", {
+                 Parent = TabBtn,
+                 BackgroundTransparency = 1,
+                 Position = UDim2.new(0, 8, 0.5, -8),
+                 Size = UDim2.fromOffset(16, 16),
+                 Image = Icon,
+                 ImageColor3 = Neon.Theme.TextDim
+             })
+        else
+             -- Default dot if no icon
+             local Dot = Create("Frame", {
+                 Parent = TabBtn,
+                 BackgroundColor3 = Neon.Theme.TextDim,
+                 Position = UDim2.new(0, 14, 0.5, -2),
+                 Size = UDim2.fromOffset(4, 4),
+                 BackgroundTransparency = 0.5
+             })
+             Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Dot })
+        end
+
         local Page = Create("ScrollingFrame", {
-            Name = tabName .. "_Page",
+            Name = Name .. "Page",
             Parent = Pages,
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 1, 0),
             Visible = false,
             ScrollBarThickness = 2,
-            ScrollBarImageColor3 = Color3.fromRGB(63, 63, 70),
-            CanvasSize = UDim2.new(0, 0, 0, 0),
-            AutomaticCanvasSize = Enum.AutomaticSize.Y
+            ScrollBarImageColor3 = Neon.Theme.ItemActive
         })
         Create("UIPadding", { 
             Parent = Page, 
@@ -228,71 +374,100 @@ function Neon:CreateWindow(options)
             SortOrder = Enum.SortOrder.LayoutOrder
         })
         
-        local function Activate()
-            -- Deactivate all others
-            for _, t in pairs(Tabs) do
-                t.Button.BackgroundTransparency = 1
-                t.Button.TextColor3 = Color3.fromRGB(113, 113, 122)
-                t.Gradient.Enabled = false
-                t.Page.Visible = false
+        local function UpdateState()
+            local active = (Library.CurrentTab == TabBtn)
+            local targetColor = active and Neon.Theme.Accent or Color3.new(0,0,0)
+            local targetTrans = active and 0.1 or 1
+            local textColor = active and Neon.Theme.Text or Neon.Theme.TextDim
+            
+            Tween(TabBtn, TweenInfo.new(0.3), { BackgroundColor3 = targetColor, BackgroundTransparency = targetTrans })
+            Tween(TabLabel, TweenInfo.new(0.3), { TextColor3 = textColor })
+            
+            -- Icon coloring
+            for _, c in pairs(TabBtn:GetChildren()) do
+                if c:IsA("ImageLabel") then
+                    Tween(c, TweenInfo.new(0.3), { ImageColor3 = textColor })
+                elseif c:IsA("Frame") and c.Name ~= "UICorner" then -- The dot
+                    Tween(c, TweenInfo.new(0.3), { BackgroundColor3 = textColor })
+                end
             end
             
-            -- Activate this one
-            TabButton.BackgroundTransparency = 0
-            TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-            Gradient.Enabled = true
-            Page.Visible = true
+            Page.Visible = active
+        end
+
+        TabBtn.MouseButton1Click:Connect(function()
+            Library.CurrentTab = TabBtn
+            for _, t in pairs(Library.Tabs) do
+                t.Update()
+            end
+        end)
+        
+        local TabObj = { Update = UpdateState }
+        table.insert(Library.Tabs, TabObj)
+        
+        -- Select first tab automatically
+        if #Library.Tabs == 1 then
+            Library.CurrentTab = TabBtn
+            UpdateState()
         end
         
-        TabButton.MouseButton1Click:Connect(Activate)
-        
-        if FirstTab then
-            FirstTab = false
-            Activate()
-        end
-        
-        table.insert(Tabs, { Button = TabButton, Page = Page, Gradient = Gradient })
-        
-        local TabObj = {}
-        
+        -- SECTION SYSTEM
         function TabObj:CreateSection(options)
             options = options or {}
-            local sectionTitle = options.Name or "Section"
+            local SecName = options.Name or "Section"
             
             local SectionFrame = Create("Frame", {
                 Parent = Page,
-                BackgroundColor3 = Color3.fromRGB(24, 24, 27),
-                BorderColor3 = Color3.fromRGB(39, 39, 42),
-                Size = UDim2.new(1, 0, 0, 0), -- Auto scaled
-                AutomaticSize = Enum.AutomaticSize.Y
+                BackgroundColor3 = Neon.Theme.Background,
+                Size = UDim2.new(1, 0, 0, 0), -- Auto
+                AutomaticSize = Enum.AutomaticSize.Y,
+                BorderSizePixel = 0
             })
             Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = SectionFrame })
-            Create("UIStroke", { Parent = SectionFrame, Color = Color3.fromRGB(39, 39, 42), Thickness = 1 })
+            Create("UIStroke", { Parent = SectionFrame, Color = Neon.Theme.Item, Thickness = 1 })
             
-            local SectionHeader = Create("TextButton", {
+            local SecHeader = Create("TextButton", {
                 Parent = SectionFrame,
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 30),
+                Size = UDim2.new(1, 0, 0, 32),
+                Text = "",
+                AutoButtonColor = false
+            })
+            
+            local SecTitle = Create("TextLabel", {
+                Parent = SecHeader,
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 12, 0, 0),
+                Size = UDim2.new(1, -40, 1, 0),
                 Font = Enum.Font.GothamBold,
-                Text = "  " .. string.upper(sectionTitle),
-                TextColor3 = Color3.fromRGB(161, 161, 170),
+                Text = string.upper(SecName),
+                TextColor3 = Neon.Theme.TextDim,
                 TextSize = 11,
                 TextXAlignment = Enum.TextXAlignment.Left
+            })
+            
+            local Chevron = Create("ImageLabel", {
+                Parent = SecHeader,
+                BackgroundTransparency = 1,
+                Position = UDim2.new(1, -26, 0.5, -7),
+                Size = UDim2.fromOffset(14, 14),
+                Image = Neon.Icons.Down,
+                ImageColor3 = Neon.Theme.TextDim
             })
             
             local Container = Create("Frame", {
                 Parent = SectionFrame,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0, 30),
+                Position = UDim2.new(0, 0, 0, 32),
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
                 ClipsDescendants = true
             })
             Create("UIPadding", { 
                 Parent = Container, 
-                PaddingLeft = UDim.new(0, 10), 
-                PaddingRight = UDim.new(0, 10),
-                PaddingBottom = UDim.new(0, 10)
+                PaddingLeft = UDim.new(0, 12), 
+                PaddingRight = UDim.new(0, 12),
+                PaddingBottom = UDim.new(0, 12)
             })
             local ContainerLayout = Create("UIListLayout", {
                 Parent = Container,
@@ -300,94 +475,107 @@ function Neon:CreateWindow(options)
                 SortOrder = Enum.SortOrder.LayoutOrder
             })
             
-            -- Collapsing Logic
             local Open = true
-            SectionHeader.MouseButton1Click:Connect(function()
+            SecHeader.MouseButton1Click:Connect(function()
                 Open = not Open
                 Container.Visible = Open
+                Tween(Chevron, TweenInfo.new(0.3), { Rotation = Open and 0 or -90 })
             end)
             
             local SectionObj = {}
             
+            -- [ TOGGLE ] --
             function SectionObj:CreateToggle(options)
-                options = options or {}
-                local name = options.Name or "Toggle"
-                local default = options.Default or false
-                local callback = options.Callback or function() end
+                local Name = options.Name or "Toggle"
+                local Default = options.Default or false
+                local Callback = options.Callback or function() end
                 
-                local ToggleFrame = Create("Frame", {
+                local ToggleBtn = Create("TextButton", {
                     Parent = Container,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 24)
+                    Size = UDim2.new(1, 0, 0, 32),
+                    Text = "",
+                    AutoButtonColor = false
                 })
                 
                 local Label = Create("TextLabel", {
-                    Parent = ToggleFrame,
+                    Parent = ToggleBtn,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, -30, 1, 0),
+                    Size = UDim2.new(1, -50, 1, 0),
                     Font = Enum.Font.Gotham,
-                    Text = name,
-                    TextColor3 = Color3.fromRGB(212, 212, 216),
+                    Text = Name,
+                    TextColor3 = Neon.Theme.Text,
                     TextSize = 13,
                     TextXAlignment = Enum.TextXAlignment.Left
                 })
                 
-                local Button = Create("TextButton", {
-                    Parent = ToggleFrame,
+                local SwitchBase = Create("Frame", {
+                    Parent = ToggleBtn,
                     AnchorPoint = Vector2.new(1, 0.5),
                     Position = UDim2.new(1, 0, 0.5, 0),
-                    Size = UDim2.fromOffset(20, 20),
-                    BackgroundColor3 = default and Color3.fromRGB(79, 70, 229) or Color3.fromRGB(39, 39, 42),
-                    Text = "",
-                    AutoButtonColor = false
+                    Size = UDim2.fromOffset(40, 20),
+                    BackgroundColor3 = Neon.Theme.Item
                 })
-                Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Button })
+                Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = SwitchBase })
+                Create("UIStroke", { Parent = SwitchBase, Color = Neon.Theme.Border, Thickness = 1 })
                 
-                local Check = Create("ImageLabel", {
-                    Parent = Button,
-                    BackgroundTransparency = 1,
-                    AnchorPoint = Vector2.new(0.5, 0.5),
-                    Position = UDim2.new(0.5, 0, 0.5, 0),
-                    Size = UDim2.fromOffset(14, 14),
-                    Image = "rbxassetid://6031048436", -- Checkmark icon
-                    ImageTransparency = default and 0 or 1
+                local SwitchCircle = Create("Frame", {
+                    Parent = SwitchBase,
+                    AnchorPoint = Vector2.new(0, 0.5),
+                    Position = UDim2.new(0, 2, 0.5, 0),
+                    Size = UDim2.fromOffset(16, 16),
+                    BackgroundColor3 = Neon.Theme.Text
                 })
+                Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = SwitchCircle })
                 
-                local toggled = default
+                local Toggled = Default
                 
-                Button.MouseButton1Click:Connect(function()
-                    toggled = not toggled
-                    TweenService:Create(Button, TweenInfo.new(0.2), {
-                        BackgroundColor3 = toggled and Color3.fromRGB(79, 70, 229) or Color3.fromRGB(39, 39, 42)
-                    }):Play()
-                    TweenService:Create(Check, TweenInfo.new(0.2), {
-                        ImageTransparency = toggled and 0 or 1
-                    }):Play()
-                    callback(toggled)
+                local function Update()
+                    local targetColor = Toggled and Neon.Theme.Accent or Neon.Theme.Item
+                    local targetPos = Toggled and UDim2.new(0, 22, 0.5, 0) or UDim2.new(0, 2, 0.5, 0)
+                    
+                    Tween(SwitchBase, TweenInfo.new(0.2), { BackgroundColor3 = targetColor })
+                    Tween(SwitchCircle, TweenInfo.new(0.2), { Position = targetPos })
+                end
+                
+                Update()
+                
+                ToggleBtn.MouseButton1Click:Connect(function()
+                    Toggled = not Toggled
+                    Update()
+                    Callback(Toggled)
                 end)
+                
+                return {
+                    Set = function(self, val)
+                        Toggled = val
+                        Update()
+                        Callback(val)
+                    end
+                }
             end
             
+            -- [ SLIDER ] --
             function SectionObj:CreateSlider(options)
-                options = options or {}
-                local name = options.Name or "Slider"
-                local min = options.Min or 0
-                local max = options.Max or 100
-                local default = options.Default or min
-                local callback = options.Callback or function() end
+                local Name = options.Name or "Slider"
+                local Min = options.Min or 0
+                local Max = options.Max or 100
+                local Default = options.Default or Min
+                local Callback = options.Callback or function() end
                 
                 local SliderFrame = Create("Frame", {
                     Parent = Container,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32)
+                    Size = UDim2.new(1, 0, 0, 44)
                 })
                 
                 local Label = Create("TextLabel", {
                     Parent = SliderFrame,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 14),
+                    Size = UDim2.new(1, 0, 0, 20),
                     Font = Enum.Font.Gotham,
-                    Text = name,
-                    TextColor3 = Color3.fromRGB(212, 212, 216),
+                    Text = Name,
+                    TextColor3 = Neon.Theme.Text,
                     TextSize = 13,
                     TextXAlignment = Enum.TextXAlignment.Left
                 })
@@ -395,28 +583,37 @@ function Neon:CreateWindow(options)
                 local ValueLabel = Create("TextLabel", {
                     Parent = SliderFrame,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 14),
-                    Font = Enum.Font.Gotham,
-                    Text = tostring(default),
-                    TextColor3 = Color3.fromRGB(99, 102, 241),
+                    Size = UDim2.new(1, 0, 0, 20),
+                    Font = Enum.Font.GothamBold,
+                    Text = tostring(Default),
+                    TextColor3 = Neon.Theme.Accent,
                     TextSize = 13,
                     TextXAlignment = Enum.TextXAlignment.Right
                 })
                 
                 local SliderBar = Create("Frame", {
                     Parent = SliderFrame,
-                    BackgroundColor3 = Color3.fromRGB(39, 39, 42),
-                    Position = UDim2.new(0, 0, 0, 18),
+                    BackgroundColor3 = Neon.Theme.Item,
+                    Position = UDim2.new(0, 0, 0, 28),
                     Size = UDim2.new(1, 0, 0, 6)
                 })
                 Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = SliderBar })
                 
                 local Fill = Create("Frame", {
                     Parent = SliderBar,
-                    BackgroundColor3 = Color3.fromRGB(79, 70, 229),
-                    Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+                    BackgroundColor3 = Neon.Theme.Accent,
+                    Size = UDim2.new(0, 0, 1, 0)
                 })
                 Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Fill })
+                
+                local Knob = Create("Frame", {
+                    Parent = SliderBar,
+                    BackgroundColor3 = Color3.new(1,1,1),
+                    Size = UDim2.fromOffset(12, 12),
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.new(0, 0, 0.5, 0)
+                })
+                Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Knob })
                 
                 local Trigger = Create("TextButton", {
                     Parent = SliderBar,
@@ -425,21 +622,28 @@ function Neon:CreateWindow(options)
                     Text = ""
                 })
                 
-                local dragging = false
+                local Value = Default
                 
-                local function Update(input)
-                    local sizeX = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
-                    local value = math.floor(min + ((max - min) * sizeX))
+                local function Set(val)
+                    Value = math.clamp(val, Min, Max)
+                    local percent = (Value - Min) / (Max - Min)
                     
-                    TweenService:Create(Fill, TweenInfo.new(0.1), { Size = UDim2.new(sizeX, 0, 1, 0) }):Play()
-                    ValueLabel.Text = tostring(value)
-                    callback(value)
+                    Tween(Fill, TweenInfo.new(0.1), { Size = UDim2.new(percent, 0, 1, 0) })
+                    Tween(Knob, TweenInfo.new(0.1), { Position = UDim2.new(percent, 0, 0.5, 0) })
+                    ValueLabel.Text = tostring(math.floor(Value * 100)/100) -- Clean format
+                    Callback(Value)
                 end
+                
+                Set(Default)
+                
+                local dragging = false
                 
                 Trigger.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                         dragging = true
-                        Update(input)
+                        
+                        local sizeX = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+                        Set(Min + ((Max - Min) * sizeX))
                     end
                 end)
                 
@@ -451,123 +655,244 @@ function Neon:CreateWindow(options)
                 
                 UserInputService.InputChanged:Connect(function(input)
                     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-                        Update(input)
+                        local sizeX = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+                        Set(Min + ((Max - Min) * sizeX))
                     end
                 end)
+                
+                return {
+                    Set = function(self, val) Set(val) end
+                }
             end
             
+            -- [ BUTTON ] --
             function SectionObj:CreateButton(options)
-                options = options or {}
-                local name = options.Name or "Button"
-                local callback = options.Callback or function() end
+                local Name = options.Name or "Button"
+                local Callback = options.Callback or function() end
                 
-                local ButtonFrame = Create("Frame", {
+                local BtnFrame = Create("Frame", {
                     Parent = Container,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 28)
+                    Size = UDim2.new(1, 0, 0, 32)
                 })
                 
                 local Btn = Create("TextButton", {
-                    Parent = ButtonFrame,
-                    BackgroundColor3 = Color3.fromRGB(79, 70, 229),
+                    Parent = BtnFrame,
+                    BackgroundColor3 = Neon.Theme.Item,
                     Size = UDim2.new(1, 0, 1, 0),
-                    Font = Enum.Font.GothamBold,
-                    Text = name,
-                    TextColor3 = Color3.fromRGB(255, 255, 255),
-                    TextSize = 12
+                    Font = Enum.Font.Gotham,
+                    Text = Name,
+                    TextColor3 = Neon.Theme.Text,
+                    TextSize = 13,
+                    AutoButtonColor = false
                 })
-                Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Btn })
+                Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = Btn })
+                Create("UIStroke", { Parent = Btn, Color = Neon.Theme.Border, Thickness = 1 })
                 
                 Btn.MouseButton1Click:Connect(function()
-                    local originalColor = Btn.BackgroundColor3
-                    TweenService:Create(Btn, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(67, 56, 202) }):Play()
+                    Tween(Btn, TweenInfo.new(0.1), { BackgroundColor3 = Neon.Theme.AccentDark })
                     task.wait(0.1)
-                    TweenService:Create(Btn, TweenInfo.new(0.1), { BackgroundColor3 = originalColor }):Play()
-                    callback()
+                    Tween(Btn, TweenInfo.new(0.1), { BackgroundColor3 = Neon.Theme.Item })
+                    Callback()
                 end)
             end
             
-             function SectionObj:CreateDropdown(options)
-                options = options or {}
-                local name = options.Name or "Dropdown"
-                local items = options.Options or {}
-                local default = options.Default or items[1]
-                local callback = options.Callback or function() end
+            -- [ DROPDOWN ] --
+            function SectionObj:CreateDropdown(options)
+                local Name = options.Name or "Dropdown"
+                local Options = options.Options or {}
+                local Default = options.Default or Options[1]
+                local Callback = options.Callback or function() end
                 
-                local DropdownFrame = Create("Frame", {
+                local Frame = Create("Frame", {
                     Parent = Container,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32), -- closed size
+                    Size = UDim2.new(1, 0, 0, 46), -- Header only height
                     ClipsDescendants = true
                 })
                 
-                local ToggleBtn = Create("TextButton", {
-                    Parent = DropdownFrame,
-                    BackgroundColor3 = Color3.fromRGB(39, 39, 42),
-                    Size = UDim2.new(1, 0, 0, 30),
+                local Label = Create("TextLabel", {
+                    Parent = Frame,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 16),
                     Font = Enum.Font.Gotham,
-                    Text = "  " .. name .. ": " .. tostring(default),
-                    TextColor3 = Color3.fromRGB(212, 212, 216),
+                    Text = Name,
+                    TextColor3 = Neon.Theme.TextDim,
                     TextSize = 12,
+                    TextXAlignment = Enum.TextXAlignment.Left
+                })
+                
+                local Trigger = Create("TextButton", {
+                    Parent = Frame,
+                    BackgroundColor3 = Neon.Theme.Item,
+                    Position = UDim2.new(0, 0, 0, 18),
+                    Size = UDim2.new(1, 0, 0, 28),
+                    Font = Enum.Font.Gotham,
+                    Text = "   " .. tostring(Default),
+                    TextColor3 = Neon.Theme.Text,
+                    TextSize = 13,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     AutoButtonColor = false
                 })
-                Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = ToggleBtn })
+                Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = Trigger })
+                Create("UIStroke", { Parent = Trigger, Color = Neon.Theme.Border, Thickness = 1 })
                 
-                local ItemContainer = Create("Frame", {
-                    Parent = DropdownFrame,
+                local Arrow = Create("ImageLabel", {
+                    Parent = Trigger,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 0, 0, 34),
+                    Position = UDim2.new(1, -24, 0.5, -6),
+                    Size = UDim2.fromOffset(12, 12),
+                    Image = Neon.Icons.Down,
+                    ImageColor3 = Neon.Theme.TextDim
+                })
+                
+                local OptionList = Create("Frame", {
+                    Parent = Frame,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 0, 0, 50),
                     Size = UDim2.new(1, 0, 0, 0)
                 })
-                local Layout = Create("UIListLayout", { Parent = ItemContainer, SortOrder = Enum.SortOrder.LayoutOrder })
+                local ListLayout = Create("UIListLayout", { Parent = OptionList, SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 4) })
                 
-                local open = false
-                local optionButtons = {}
+                local isOpen = false
                 
-                local function RefreshOptions()
-                    for _, v in pairs(ItemContainer:GetChildren()) do
-                        if v:IsA("TextButton") then v:Destroy() end
+                local function RenderOptions()
+                    for _, child in pairs(OptionList:GetChildren()) do
+                        if child:IsA("TextButton") then child:Destroy() end
                     end
                     
-                    for _, item in pairs(items) do
+                    for _, opt in pairs(Options) do
                         local OptBtn = Create("TextButton", {
-                            Parent = ItemContainer,
-                            BackgroundColor3 = Color3.fromRGB(45, 45, 48),
+                            Parent = OptionList,
+                            BackgroundColor3 = Neon.Theme.BackgroundDark,
                             Size = UDim2.new(1, 0, 0, 24),
                             Font = Enum.Font.Gotham,
-                            Text = item,
-                            TextColor3 = Color3.fromRGB(161, 161, 170),
-                            TextSize = 12
+                            Text = "   " .. tostring(opt),
+                            TextColor3 = Neon.Theme.TextDim,
+                            TextSize = 12,
+                            TextXAlignment = Enum.TextXAlignment.Left,
+                            AutoButtonColor = false
                         })
                         Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = OptBtn })
                         
                         OptBtn.MouseButton1Click:Connect(function()
-                            ToggleBtn.Text = "  " .. name .. ": " .. item
-                            callback(item)
-                            open = false
-                            TweenService:Create(DropdownFrame, TweenInfo.new(0.2), { Size = UDim2.new(1, 0, 0, 32) }):Play()
+                            Trigger.Text = "   " .. tostring(opt)
+                            Callback(opt)
+                            isOpen = false
+                            Tween(Frame, TweenInfo.new(0.2), { Size = UDim2.new(1, 0, 0, 46) })
+                            Tween(Arrow, TweenInfo.new(0.2), { Rotation = 0 })
                         end)
                     end
                 end
                 
-                RefreshOptions()
+                RenderOptions()
                 
-                ToggleBtn.MouseButton1Click:Connect(function()
-                    open = not open
-                    local contentSize = Layout.AbsoluteContentSize.Y
-                    local targetSize = open and (contentSize + 40) or 32
-                    TweenService:Create(DropdownFrame, TweenInfo.new(0.2), { Size = UDim2.new(1, 0, 0, targetSize) }):Play()
+                Trigger.MouseButton1Click:Connect(function()
+                    isOpen = not isOpen
+                    local targetH = isOpen and (46 + 4 + (#Options * 28)) or 46
+                    Tween(Frame, TweenInfo.new(0.2), { Size = UDim2.new(1, 0, 0, targetH) })
+                    Tween(Arrow, TweenInfo.new(0.2), { Rotation = isOpen and 180 or 0 })
                 end)
             end
-            
+
+            -- [ COLOR PICKER ] --
+            function SectionObj:CreateColorPicker(options)
+                local Name = options.Name or "Color Picker"
+                local Default = options.Default or Color3.fromRGB(255, 255, 255)
+                local Callback = options.Callback or function() end
+
+                local Frame = Create("Frame", {
+                    Parent = Container,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 28)
+                })
+
+                local Label = Create("TextLabel", {
+                    Parent = Frame,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, -50, 1, 0),
+                    Font = Enum.Font.Gotham,
+                    Text = Name,
+                    TextColor3 = Neon.Theme.Text,
+                    TextSize = 13,
+                    TextXAlignment = Enum.TextXAlignment.Left
+                })
+
+                local Preview = Create("TextButton", {
+                    Parent = Frame,
+                    AnchorPoint = Vector2.new(1, 0.5),
+                    Position = UDim2.new(1, 0, 0.5, 0),
+                    Size = UDim2.fromOffset(40, 20),
+                    BackgroundColor3 = Default,
+                    Text = ""
+                })
+                Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Preview })
+                Create("UIStroke", { Parent = Preview, Color = Neon.Theme.Border, Thickness = 1 })
+
+                -- Basic random color toggle for demo purposes in this single file version
+                -- Real HSV picker requires more UI space, kept simple for robustness
+                Preview.MouseButton1Click:Connect(function()
+                    local r = math.random()
+                    local g = math.random()
+                    local b = math.random()
+                    local newColor = Color3.new(r, g, b)
+                    Tween(Preview, TweenInfo.new(0.2), { BackgroundColor3 = newColor })
+                    Callback(newColor)
+                end)
+            end
+
+            -- [ TEXT INPUT ] --
+             function SectionObj:CreateInput(options)
+                local Name = options.Name or "Input"
+                local Placeholder = options.Placeholder or "Type here..."
+                local Callback = options.Callback or function() end
+                
+                local Frame = Create("Frame", {
+                    Parent = Container,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 50)
+                })
+                
+                local Label = Create("TextLabel", {
+                    Parent = Frame,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 16),
+                    Font = Enum.Font.Gotham,
+                    Text = Name,
+                    TextColor3 = Neon.Theme.TextDim,
+                    TextSize = 12,
+                    TextXAlignment = Enum.TextXAlignment.Left
+                })
+                
+                local InputBox = Create("TextBox", {
+                    Parent = Frame,
+                    BackgroundColor3 = Neon.Theme.Item,
+                    Position = UDim2.new(0, 0, 0, 18),
+                    Size = UDim2.new(1, 0, 0, 28),
+                    Font = Enum.Font.Gotham,
+                    Text = "",
+                    PlaceholderText = Placeholder,
+                    PlaceholderColor3 = Neon.Theme.TextDim,
+                    TextColor3 = Neon.Theme.Text,
+                    TextSize = 13,
+                    TextXAlignment = Enum.TextXAlignment.Left
+                })
+                Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = InputBox })
+                Create("UIStroke", { Parent = InputBox, Color = Neon.Theme.Border, Thickness = 1 })
+                Create("UIPadding", { Parent = InputBox, PaddingLeft = UDim.new(0, 10) })
+                
+                InputBox.FocusLost:Connect(function(enter)
+                    Callback(InputBox.Text)
+                end)
+            end
+
             return SectionObj
         end
         
         return TabObj
     end
     
-    return WindowObj
+    return Library
 end
 
 return Neon
