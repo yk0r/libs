@@ -6,7 +6,7 @@
     ██║     ███████║███████╗██║██████╔╝
     ╚═╝     ╚══════╝╚══════╝╚═╝╚═════╝ 
     
-    FriendShip.Lua (FSlib) v1.0.5
+    FriendShip.Lua (FSlib) v1.0.6
     A professional Roblox GUI Library
     
     GitHub: https://github.com/FSlib
@@ -14,7 +14,7 @@
 ]]
 
 local FSlib = {
-    _VERSION = "1.0.5",
+    _VERSION = "1.0.6",
     _NAME = "FriendShip.Lua",
     Flags = {},
     Windows = {},
@@ -138,8 +138,6 @@ function FSlib:CreateWindow(options)
     local title = options.Title or "FSlib"
     local subtitle = options.Subtitle or "v1.0.0"
     local toggleKey = options.ToggleKey or Enum.KeyCode.RightControl
-    local saveConfig = options.SaveConfig or false
-    local configFolder = options.ConfigFolder or "FSlib"
     
     -- Main ScreenGui
     local screenGui = Create("ScreenGui", {
@@ -192,7 +190,7 @@ function FSlib:CreateWindow(options)
     })
     BindToTheme(titleBorder, "BackgroundColor3", "Border")
     
-    -- Title Label (无图标，简洁设计)
+    -- Title Label
     local titleLabel = Create("TextLabel", {
         Name = "TitleLabel",
         Parent = titleBar,
@@ -203,7 +201,7 @@ function FSlib:CreateWindow(options)
         Font = Enum.Font.GothamBold,
         Text = title,
         TextColor3 = FSlib.Theme.Text,
-        TextSize = 12,
+        TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 3,
     })
@@ -216,16 +214,16 @@ function FSlib:CreateWindow(options)
         Position = UDim2.new(0, 0, 0, 0),
         Size = UDim2.new(0, 0, 1, 0),
         AutomaticSize = Enum.AutomaticSize.X,
-        Font = Enum.Font.Gotham,
+        Font = Enum.Font.GothamMedium,
         Text = " | " .. subtitle,
         TextColor3 = FSlib.Theme.TextDark,
-        TextSize = 10,
+        TextSize = 11,
         TextXAlignment = Enum.TextXAlignment.Left,
         ZIndex = 3,
     })
     BindToTheme(subtitleLabel, "TextColor3", "TextDark")
     
-    -- 等待一帧后更新 subtitle 位置
+    -- 更新 subtitle 位置
     task.defer(function()
         subtitleLabel.Position = UDim2.new(0, 10 + titleLabel.TextBounds.X, 0, 0)
     end)
@@ -341,10 +339,10 @@ function FSlib:CreateWindow(options)
             Parent = tabList,
             BackgroundTransparency = 1,
             Size = UDim2.new(0, 80, 1, -4),
-            Font = Enum.Font.Gotham,
+            Font = Enum.Font.GothamMedium,
             Text = tabIcon ~= "" and (tabIcon .. " " .. tabName) or tabName,
             TextColor3 = FSlib.Theme.TextDark,
-            TextSize = 11,
+            TextSize = 12,
             LayoutOrder = tabIndex,
             ZIndex = 4,
         })
@@ -370,7 +368,7 @@ function FSlib:CreateWindow(options)
             Position = UDim2.new(0, 8, 0, 8),
             Size = UDim2.new(1, -16, 1, -16),
             CanvasSize = UDim2.new(0, 0, 0, 0),
-            ScrollBarThickness = 3,
+            ScrollBarThickness = 2,
             ScrollBarImageColor3 = FSlib.Theme.Primary,
             Visible = false,
             ZIndex = 3,
@@ -453,7 +451,6 @@ function FSlib:CreateWindow(options)
             })
             BindToTheme(sectionHeader, "BackgroundColor3", "BackgroundSecondary")
             
-            -- 完整的边框
             local headerStroke = Create("UIStroke", {
                 Parent = sectionHeader,
                 Color = FSlib.Theme.Border,
@@ -470,13 +467,13 @@ function FSlib:CreateWindow(options)
                 Font = Enum.Font.GothamBold,
                 Text = sectionName:upper(),
                 TextColor3 = FSlib.Theme.Primary,
-                TextSize = 10,
+                TextSize = 11,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 ZIndex = 6,
             })
             BindToTheme(sectionTitle, "TextColor3", "Primary")
             
-            -- Section Content - 带完整边框
+            -- Section Content
             local sectionContent = Create("Frame", {
                 Name = "Content",
                 Parent = sectionFrame,
@@ -489,7 +486,6 @@ function FSlib:CreateWindow(options)
             })
             BindToTheme(sectionContent, "BackgroundColor3", "BackgroundTertiary")
             
-            -- 完整边框 - 使用 UIStroke 确保所有四边都有边框
             local contentStroke = Create("UIStroke", {
                 Parent = sectionContent,
                 Color = FSlib.Theme.Border,
@@ -514,10 +510,10 @@ function FSlib:CreateWindow(options)
                 Padding = UDim.new(0, 6),
             })
             
-            -- 底部padding
+            -- 底部 Padding 增加，确保容器包住所有内容
             Create("UIPadding", {
                 Parent = sectionContent,
-                PaddingBottom = UDim.new(0, 8),
+                PaddingBottom = UDim.new(0, 12),
             })
             
             local Section = {
@@ -528,7 +524,7 @@ function FSlib:CreateWindow(options)
             
             -- ============== UI ELEMENTS ==============
             
-            -- Toggle
+            -- Toggle (无对勾，颜色跟随主题)
             function Section:CreateToggle(toggleOptions)
                 toggleOptions = toggleOptions or {}
                 local name = toggleOptions.Name or "Toggle"
@@ -557,10 +553,17 @@ function FSlib:CreateWindow(options)
                     Parent = toggleFrame,
                     BackgroundColor3 = value and FSlib.Theme.Primary or FSlib.Theme.BackgroundSecondary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 0, 0.5, -7),
-                    Size = UDim2.new(0, 14, 0, 14),
+                    Position = UDim2.new(0, 0, 0.5, -6),
+                    Size = UDim2.new(0, 12, 0, 12),
                     ZIndex = 11,
                 })
+                -- 如果是关，使用 BackgroundSecondary；开，使用 Primary
+                -- 初始颜色设置
+                if value then
+                    BindToTheme(toggleBox, "BackgroundColor3", "Primary")
+                else
+                    BindToTheme(toggleBox, "BackgroundColor3", "BackgroundSecondary")
+                end
                 
                 Create("UIStroke", {
                     Parent = toggleBox,
@@ -568,28 +571,16 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                local toggleCheck = Create("TextLabel", {
-                    Name = "Check",
-                    Parent = toggleBox,
-                    BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 1, 0),
-                    Font = Enum.Font.GothamBold,
-                    Text = value and "✓" or "",
-                    TextColor3 = FSlib.Theme.Text,
-                    TextSize = 10,
-                    ZIndex = 12,
-                })
-                
                 local toggleLabel = Create("TextLabel", {
                     Name = "Label",
                     Parent = toggleFrame,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 22, 0, 0),
-                    Size = UDim2.new(1, -22, 1, 0),
-                    Font = Enum.Font.Gotham,
+                    Position = UDim2.new(0, 20, 0, 0),
+                    Size = UDim2.new(1, -20, 1, 0),
+                    Font = Enum.Font.GothamMedium,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ZIndex = 11,
                 })
@@ -605,8 +596,14 @@ function FSlib:CreateWindow(options)
                 })
                 
                 local function updateToggle()
-                    Tween(toggleBox, { BackgroundColor3 = value and FSlib.Theme.Primary or FSlib.Theme.BackgroundSecondary }, 0.15)
-                    toggleCheck.Text = value and "✓" or ""
+                    if value then
+                        Tween(toggleBox, { BackgroundColor3 = FSlib.Theme.Primary }, 0.15)
+                        BindToTheme(toggleBox, "BackgroundColor3", "Primary")
+                    else
+                        Tween(toggleBox, { BackgroundColor3 = FSlib.Theme.BackgroundSecondary }, 0.15)
+                        BindToTheme(toggleBox, "BackgroundColor3", "BackgroundSecondary")
+                    end
+                    
                     if flag then
                         FSlib.Flags[flag] = value
                     end
@@ -629,7 +626,7 @@ function FSlib:CreateWindow(options)
                 }
             end
             
-            -- Slider (支持键盘输入)
+            -- Slider
             function Section:CreateSlider(sliderOptions)
                 sliderOptions = sliderOptions or {}
                 local name = sliderOptions.Name or "Slider"
@@ -663,16 +660,15 @@ function FSlib:CreateWindow(options)
                     BackgroundTransparency = 1,
                     Position = UDim2.new(0, 0, 0, 0),
                     Size = UDim2.new(0.6, 0, 0, 14),
-                    Font = Enum.Font.Gotham,
+                    Font = Enum.Font.GothamMedium,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ZIndex = 11,
                 })
                 BindToTheme(sliderLabel, "TextColor3", "Text")
                 
-                -- 可输入的值框
                 local sliderValueBox = Create("TextBox", {
                     Name = "ValueBox",
                     Parent = sliderFrame,
@@ -682,14 +678,13 @@ function FSlib:CreateWindow(options)
                     Size = UDim2.new(0, 50, 0, 14),
                     Font = Enum.Font.GothamMedium,
                     Text = tostring(value) .. suffix,
-                    TextColor3 = Color3.fromRGB(255, 255, 255), -- 固定白色，不受主题影响
-                    TextSize = 10,
+                    TextColor3 = Color3.fromRGB(255, 255, 255),
+                    TextSize = 11,
                     TextXAlignment = Enum.TextXAlignment.Center,
                     ClearTextOnFocus = true,
                     ZIndex = 11,
                 })
                 BindToTheme(sliderValueBox, "BackgroundColor3", "BackgroundSecondary")
-                -- 不绑定 TextColor3，保持固定颜色
                 
                 Create("UIStroke", {
                     Parent = sliderValueBox,
@@ -702,8 +697,8 @@ function FSlib:CreateWindow(options)
                     Parent = sliderFrame,
                     BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 0, 0, 18),
-                    Size = UDim2.new(1, 0, 0, 10),
+                    Position = UDim2.new(0, 0, 0, 20),
+                    Size = UDim2.new(1, 0, 0, 8),
                     ZIndex = 11,
                 })
                 BindToTheme(sliderBg, "BackgroundColor3", "BackgroundSecondary")
@@ -772,7 +767,6 @@ function FSlib:CreateWindow(options)
                     end
                 end)
                 
-                -- 键盘输入支持
                 sliderValueBox.FocusLost:Connect(function(enterPressed)
                     local inputText = sliderValueBox.Text:gsub(suffix, ""):gsub("%s+", "")
                     local inputNum = tonumber(inputText)
@@ -828,10 +822,10 @@ function FSlib:CreateWindow(options)
                     Parent = dropdownFrame,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 14),
-                    Font = Enum.Font.Gotham,
+                    Font = Enum.Font.GothamMedium,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ZIndex = 11,
                 })
@@ -844,10 +838,10 @@ function FSlib:CreateWindow(options)
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 0, 0, 16),
                     Size = UDim2.new(1, 0, 0, 24),
-                    Font = Enum.Font.Gotham,
+                    Font = Enum.Font.GothamMedium,
                     Text = "  " .. tostring(value),
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ZIndex = 11,
                 })
@@ -866,15 +860,14 @@ function FSlib:CreateWindow(options)
                     BackgroundTransparency = 1,
                     Position = UDim2.new(1, -20, 0, 0),
                     Size = UDim2.new(0, 20, 1, 0),
-                    Font = Enum.Font.Gotham,
+                    Font = Enum.Font.GothamMedium,
                     Text = "▼",
                     TextColor3 = FSlib.Theme.TextDark,
-                    TextSize = 8,
+                    TextSize = 10,
                     ZIndex = 12,
                 })
                 BindToTheme(dropdownArrow, "TextColor3", "TextDark")
                 
-                -- 点击背景遮罩 - 用于拦截点击事件
                 local dropdownOverlay = Create("TextButton", {
                     Name = "Overlay_" .. name,
                     Parent = screenGui,
@@ -885,7 +878,6 @@ function FSlib:CreateWindow(options)
                     ZIndex = 999,
                 })
                 
-                -- Dropdown List Container - 放在 ScreenGui 顶层确保不被遮挡
                 local dropdownList = Create("Frame", {
                     Name = "List_" .. name,
                     Parent = screenGui,
@@ -896,6 +888,7 @@ function FSlib:CreateWindow(options)
                     ClipsDescendants = true,
                     Visible = false,
                     ZIndex = 1000,
+                    Active = true, -- 防止点击穿透
                 })
                 BindToTheme(dropdownList, "BackgroundColor3", "BackgroundSecondary")
                 
@@ -923,7 +916,7 @@ function FSlib:CreateWindow(options)
                     local absPos = dropdownButton.AbsolutePosition
                     local absSize = dropdownButton.AbsoluteSize
                     dropdownList.Position = UDim2.new(0, absPos.X, 0, absPos.Y + absSize.Y + 2)
-                    dropdownList.Size = UDim2.new(0, absSize.X, 0, math.min(#items * 22, 150))
+                    dropdownList.Size = UDim2.new(0, absSize.X, 0, math.min(#items * 24, 150))
                 end
                 
                 local function createItems()
@@ -940,11 +933,11 @@ function FSlib:CreateWindow(options)
                             BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                             BackgroundTransparency = 0,
                             BorderSizePixel = 0,
-                            Size = UDim2.new(1, 0, 0, 22),
-                            Font = Enum.Font.Gotham,
+                            Size = UDim2.new(1, 0, 0, 24),
+                            Font = Enum.Font.GothamMedium,
                             Text = "  " .. tostring(item),
                             TextColor3 = FSlib.Theme.Text,
-                            TextSize = 11,
+                            TextSize = 12,
                             TextXAlignment = Enum.TextXAlignment.Left,
                             LayoutOrder = i,
                             ZIndex = 1002,
@@ -1043,10 +1036,10 @@ function FSlib:CreateWindow(options)
                     Parent = keybindFrame,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, -60, 1, 0),
-                    Font = Enum.Font.Gotham,
+                    Font = Enum.Font.GothamMedium,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ZIndex = 11,
                 })
@@ -1059,10 +1052,10 @@ function FSlib:CreateWindow(options)
                     BorderSizePixel = 0,
                     Position = UDim2.new(1, -55, 0.5, -10),
                     Size = UDim2.new(0, 55, 0, 20),
-                    Font = Enum.Font.Code,
+                    Font = Enum.Font.GothamMedium,
                     Text = value.Name or "None",
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 10,
+                    TextSize = 11,
                     ZIndex = 11,
                 })
                 BindToTheme(keybindButton, "BackgroundColor3", "BackgroundSecondary")
@@ -1148,10 +1141,10 @@ function FSlib:CreateWindow(options)
                     Parent = colorFrame,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, -40, 1, 0),
-                    Font = Enum.Font.Gotham,
+                    Font = Enum.Font.GothamMedium,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ZIndex = 11,
                 })
@@ -1174,7 +1167,6 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                -- 点击背景遮罩 - 用于拦截点击事件
                 local colorOverlay = Create("TextButton", {
                     Name = "ColorOverlay_" .. name,
                     Parent = screenGui,
@@ -1185,7 +1177,6 @@ function FSlib:CreateWindow(options)
                     ZIndex = 1999,
                 })
                 
-                -- Color Picker Panel - 放在 ScreenGui 顶层确保不被遮挡
                 local pickerPanel = Create("Frame", {
                     Name = "ColorPanel_" .. name,
                     Parent = screenGui,
@@ -1195,6 +1186,7 @@ function FSlib:CreateWindow(options)
                     Size = UDim2.new(0, 180, 0, 160),
                     Visible = false,
                     ZIndex = 2000,
+                    Active = true, -- 防止点击穿透
                 })
                 BindToTheme(pickerPanel, "BackgroundColor3", "Background")
                 
@@ -1210,7 +1202,6 @@ function FSlib:CreateWindow(options)
                     pickerPanel.Position = UDim2.new(0, absPos.X - 145, 0, absPos.Y + absSize.Y + 4)
                 end
                 
-                -- Saturation/Value picker
                 local svPicker = Create("Frame", {
                     Name = "SVPicker",
                     Parent = pickerPanel,
@@ -1219,9 +1210,9 @@ function FSlib:CreateWindow(options)
                     Position = UDim2.new(0, 8, 0, 8),
                     Size = UDim2.new(0, 140, 0, 100),
                     ZIndex = 2001,
+                    Active = true,
                 })
                 
-                -- 白色到透明的水平渐变 (Saturation)
                 local satGradient = Create("Frame", {
                     Name = "SatGradient",
                     Parent = svPicker,
@@ -1243,7 +1234,6 @@ function FSlib:CreateWindow(options)
                     }),
                 })
                 
-                -- 透明到黑色的垂直渐变 (Value)
                 local svOverlay = Create("Frame", {
                     Name = "Overlay",
                     Parent = svPicker,
@@ -1284,7 +1274,6 @@ function FSlib:CreateWindow(options)
                     CornerRadius = UDim.new(1, 0),
                 })
                 
-                -- Hue slider
                 local huePicker = Create("Frame", {
                     Name = "HuePicker",
                     Parent = pickerPanel,
@@ -1293,6 +1282,7 @@ function FSlib:CreateWindow(options)
                     Position = UDim2.new(0, 156, 0, 8),
                     Size = UDim2.new(0, 16, 0, 100),
                     ZIndex = 2001,
+                    Active = true,
                 })
                 
                 Create("UIGradient", {
@@ -1325,7 +1315,6 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                -- Hex Input
                 local hexInput = Create("TextBox", {
                     Name = "HexInput",
                     Parent = pickerPanel,
@@ -1336,7 +1325,7 @@ function FSlib:CreateWindow(options)
                     Font = Enum.Font.Code,
                     Text = "#" .. string.format("%02X%02X%02X", value.R * 255, value.G * 255, value.B * 255),
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 10,
+                    TextSize = 11,
                     ZIndex = 2001,
                     ClearTextOnFocus = false,
                 })
@@ -1349,7 +1338,6 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                -- Apply button
                 local applyButton = Create("TextButton", {
                     Name = "Apply",
                     Parent = pickerPanel,
@@ -1366,7 +1354,6 @@ function FSlib:CreateWindow(options)
                 BindToTheme(applyButton, "BackgroundColor3", "Primary")
                 BindToTheme(applyButton, "TextColor3", "Text")
                 
-                -- Preset colors
                 local presets = {
                     Color3.fromRGB(255, 0, 0),
                     Color3.fromRGB(255, 128, 0),
@@ -1420,7 +1407,6 @@ function FSlib:CreateWindow(options)
                     callback(value)
                 end
                 
-                -- SV Picker interaction
                 local svDragging = false
                 
                 svPicker.InputBegan:Connect(function(input)
@@ -1435,7 +1421,6 @@ function FSlib:CreateWindow(options)
                     end
                 end)
                 
-                -- Hue Picker interaction
                 local hueDragging = false
                 
                 huePicker.InputBegan:Connect(function(input)
@@ -1474,12 +1459,10 @@ function FSlib:CreateWindow(options)
                     colorOverlay.Visible = false
                 end
                 
-                -- 点击遮罩关闭 ColorPicker
                 colorOverlay.MouseButton1Click:Connect(function()
                     closeColorPicker()
                 end)
                 
-                -- Toggle picker
                 colorPreview.MouseButton1Click:Connect(function()
                     isOpen = not isOpen
                     pickerPanel.Visible = isOpen
@@ -1489,13 +1472,11 @@ function FSlib:CreateWindow(options)
                     end
                 end)
                 
-                -- Apply button
                 applyButton.MouseButton1Click:Connect(function()
                     closeColorPicker()
                     updateColor()
                 end)
                 
-                -- Hex input
                 hexInput.FocusLost:Connect(function()
                     local hex = hexInput.Text:gsub("#", "")
                     if #hex == 6 then
@@ -1569,10 +1550,10 @@ function FSlib:CreateWindow(options)
                     Parent = textboxFrame,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 14),
-                    Font = Enum.Font.Gotham,
+                    Font = Enum.Font.GothamMedium,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ZIndex = 11,
                 })
@@ -1585,12 +1566,12 @@ function FSlib:CreateWindow(options)
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 0, 0, 16),
                     Size = UDim2.new(1, 0, 0, 24),
-                    Font = Enum.Font.Gotham,
+                    Font = Enum.Font.GothamMedium,
                     Text = default,
                     PlaceholderText = placeholder,
                     PlaceholderColor3 = FSlib.Theme.TextDark,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ClearTextOnFocus = false,
                     ZIndex = 11,
@@ -1660,7 +1641,7 @@ function FSlib:CreateWindow(options)
                     Font = Enum.Font.GothamBold,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     ClipsDescendants = true,
                     ZIndex = 11,
                 })
@@ -1707,7 +1688,7 @@ function FSlib:CreateWindow(options)
                     Parent = labelFrame,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 1, 0),
-                    Font = Enum.Font.Gotham,
+                    Font = Enum.Font.GothamMedium,
                     Text = text or "",
                     TextColor3 = FSlib.Theme.TextDark,
                     TextSize = 11,
@@ -1864,7 +1845,7 @@ function FSlib:Notify(options)
         Font = Enum.Font.GothamBold,
         Text = title,
         TextColor3 = accentColor,
-        TextSize = 11,
+        TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     
@@ -1874,10 +1855,10 @@ function FSlib:Notify(options)
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 12, 0, 24),
         Size = UDim2.new(1, -20, 0, 28),
-        Font = Enum.Font.Gotham,
+        Font = Enum.Font.GothamMedium,
         Text = content,
         TextColor3 = FSlib.Theme.Text,
-        TextSize = 10,
+        TextSize = 11,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Top,
         TextWrapped = true,
@@ -1893,7 +1874,7 @@ function FSlib:Notify(options)
     end)
 end
 
--- Watermark (改进间距)
+-- Watermark
 function FSlib:CreateWatermark(options)
     options = options or {}
     local name = options.Name or "FSlib"
@@ -1911,7 +1892,7 @@ function FSlib:CreateWatermark(options)
         BackgroundColor3 = FSlib.Theme.Background,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 10, 0, 10),
-        Size = UDim2.new(0, 280, 0, 26),
+        Size = UDim2.new(0, 280, 0, 28),
     })
     BindToTheme(watermark, "BackgroundColor3", "Background")
     
@@ -1936,10 +1917,10 @@ function FSlib:CreateWatermark(options)
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 12, 0, 0),
         Size = UDim2.new(1, -24, 1, 0),
-        Font = Enum.Font.Code,
+        Font = Enum.Font.GothamMedium, -- 使用 Gotham
         Text = name .. "  |  FPS: 60  |  Ping: 0ms  |  00:00:00",
         TextColor3 = FSlib.Theme.Text,
-        TextSize = 11,
+        TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     BindToTheme(text, "TextColor3", "Text")
@@ -1959,7 +1940,7 @@ function FSlib:CreateWatermark(options)
             text.Text = string.format("%s  |  FPS: %d  |  Ping: %dms  |  %s", name, fps, ping, timeStr)
             
             local textWidth = text.TextBounds.X + 30
-            watermark.Size = UDim2.new(0, math.max(textWidth, 200), 0, 26)
+            watermark.Size = UDim2.new(0, math.max(textWidth, 200), 0, 28)
         end
     end)
     
