@@ -832,13 +832,51 @@ function FSlib:CreateWindow(options)
             }
             table.insert(Tab.Sections, Section)
             
+            -- Find or create column container
+            local leftColumn = tabContent:FindFirstChild("LeftColumn")
+            local rightColumn = tabContent:FindFirstChild("RightColumn")
+            
+            if not leftColumn then
+                leftColumn = Create("Frame", {
+                    Name = "LeftColumn",
+                    Parent = tabContent,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0.5, -4, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    LayoutOrder = 1,
+                }, {
+                    Create("UIListLayout", {
+                        SortOrder = Enum.SortOrder.LayoutOrder,
+                        Padding = UDim.new(0, 8),
+                    }),
+                })
+            end
+            
+            if not rightColumn then
+                rightColumn = Create("Frame", {
+                    Name = "RightColumn",
+                    Parent = tabContent,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(0.5, -4, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    LayoutOrder = 2,
+                }, {
+                    Create("UIListLayout", {
+                        SortOrder = Enum.SortOrder.LayoutOrder,
+                        Padding = UDim.new(0, 8),
+                    }),
+                })
+            end
+            
+            local parentColumn = side == "Left" and leftColumn or rightColumn
+            
             local sectionFrame = Create("Frame", {
                 Name = sectionName,
-                Parent = tabContent,
+                Parent = parentColumn,
                 BackgroundTransparency = 1,
-                Size = UDim2.new(0.5, -4, 0, 0),
+                Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
-                LayoutOrder = side == "Left" and 1 or 2,
+                LayoutOrder = #Tab.Sections,
             }, {
                 Create("UIListLayout", {
                     SortOrder = Enum.SortOrder.LayoutOrder,
@@ -851,9 +889,9 @@ function FSlib:CreateWindow(options)
                 Name = "Header",
                 Parent = sectionFrame,
                 BackgroundColor3 = Config.Theme.Surface,
-                BackgroundTransparency = 0.5,
                 BorderSizePixel = 0,
                 Size = UDim2.new(1, 0, 0, 28),
+                LayoutOrder = 1,
             }, {
                 Create("Frame", {
                     Name = "Accent",
@@ -872,6 +910,13 @@ function FSlib:CreateWindow(options)
                     TextSize = 10,
                     TextXAlignment = Enum.TextXAlignment.Left,
                 }),
+                Create("Frame", {
+                    Name = "Border",
+                    BackgroundColor3 = Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 1),
+                    Position = UDim2.new(0, 0, 1, -1),
+                }),
             })
             
             -- Section Content
@@ -879,10 +924,11 @@ function FSlib:CreateWindow(options)
                 Name = "Content",
                 Parent = sectionFrame,
                 BackgroundColor3 = Config.Theme.Background,
-                BackgroundTransparency = 0.5,
+                BackgroundTransparency = 0.3,
                 BorderSizePixel = 0,
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
+                LayoutOrder = 2,
             }, {
                 Create("Frame", {
                     Name = "LeftBorder",
@@ -890,12 +936,29 @@ function FSlib:CreateWindow(options)
                     BorderSizePixel = 0,
                     Size = UDim2.new(0, 1, 1, 0),
                 }),
+                Create("Frame", {
+                    Name = "RightBorder",
+                    BackgroundColor3 = Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(0, 1, 1, 0),
+                    Position = UDim2.new(1, -1, 0, 0),
+                }),
+                Create("Frame", {
+                    Name = "BottomBorder",
+                    BackgroundColor3 = Config.Theme.Border,
+                    BorderSizePixel = 0,
+                    Size = UDim2.new(1, 0, 0, 1),
+                    Position = UDim2.new(0, 0, 1, -1),
+                }),
                 Create("UIListLayout", {
                     SortOrder = Enum.SortOrder.LayoutOrder,
                     Padding = UDim.new(0, 0),
                 }),
                 Create("UIPadding", {
                     PaddingLeft = UDim.new(0, 1),
+                    PaddingRight = UDim.new(0, 1),
+                    PaddingTop = UDim.new(0, 4),
+                    PaddingBottom = UDim.new(0, 4),
                 }),
             })
             
