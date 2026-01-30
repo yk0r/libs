@@ -6,7 +6,7 @@
     ██║     ███████║███████╗██║██████╔╝
     ╚═╝     ╚══════╝╚══════╝╚═╝╚═════╝ 
     
-    FriendShip.Lua (FSlib) v2.0.0
+    FriendShip.Lua (FSlib) v2.0.1
     Minimal Tactical Style
     
     A professional Roblox GUI Library
@@ -14,7 +14,7 @@
 --]]
 
 local FSlib = {
-    _VERSION = "2.0.0",
+    _VERSION = "2.0.1",
     _AUTHOR = "FSlib Team",
     Flags = {},
     Windows = {},
@@ -23,16 +23,16 @@ local FSlib = {
         PrimaryDark = Color3.fromRGB(183, 28, 28),
         PrimaryLight = Color3.fromRGB(255, 82, 82),
         
-        Background = Color3.fromRGB(8, 8, 8),
-        BackgroundSecondary = Color3.fromRGB(13, 13, 13),
-        BackgroundTertiary = Color3.fromRGB(18, 18, 18),
+        Background = Color3.fromRGB(12, 12, 12),
+        BackgroundSecondary = Color3.fromRGB(18, 18, 18),
+        BackgroundTertiary = Color3.fromRGB(25, 25, 25),
         
-        Border = Color3.fromRGB(26, 26, 26),
-        BorderLight = Color3.fromRGB(35, 35, 35),
+        Border = Color3.fromRGB(35, 35, 35),
+        BorderLight = Color3.fromRGB(50, 50, 50),
         
         Text = Color3.fromRGB(255, 255, 255),
-        TextDark = Color3.fromRGB(180, 180, 180),
-        TextDisabled = Color3.fromRGB(112, 112, 112),
+        TextDark = Color3.fromRGB(200, 200, 200),
+        TextDisabled = Color3.fromRGB(120, 120, 120),
         
         Success = Color3.fromRGB(76, 175, 80),
         Warning = Color3.fromRGB(255, 193, 7),
@@ -82,7 +82,7 @@ local function Ripple(button, x, y)
         Name = "Ripple",
         Parent = button,
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 0.8,
+        BackgroundTransparency = 0.7,
         BorderSizePixel = 0,
         Position = UDim2.new(0, x - button.AbsolutePosition.X, 0, y - button.AbsolutePosition.Y),
         Size = UDim2.new(0, 0, 0, 0),
@@ -90,12 +90,10 @@ local function Ripple(button, x, y)
         ZIndex = button.ZIndex + 1,
     })
     
-    Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = ripple })
-    
     local maxSize = math.max(button.AbsoluteSize.X, button.AbsoluteSize.Y) * 2
-    Tween(ripple, { Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1 }, 0.4)
+    Tween(ripple, { Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1 }, 0.5)
     
-    task.delay(0.4, function()
+    task.delay(0.5, function()
         ripple:Destroy()
     end)
 end
@@ -151,7 +149,7 @@ function FSlib:Notify(options)
         Parent = screenGui,
         BackgroundTransparency = 1,
         Position = UDim2.new(1, -20, 1, -20),
-        Size = UDim2.new(0, 280, 1, -40),
+        Size = UDim2.new(0, 300, 1, -40),
         AnchorPoint = Vector2.new(1, 1),
     })
     
@@ -160,7 +158,7 @@ function FSlib:Notify(options)
             Parent = container,
             SortOrder = Enum.SortOrder.LayoutOrder,
             VerticalAlignment = Enum.VerticalAlignment.Bottom,
-            Padding = UDim.new(0, 8),
+            Padding = UDim.new(0, 10),
         })
     end
     
@@ -169,7 +167,7 @@ function FSlib:Notify(options)
         Parent = container,
         BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
         BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 60),
+        Size = UDim2.new(1, 0, 0, 70),
         ClipsDescendants = true,
     })
     
@@ -185,19 +183,19 @@ function FSlib:Notify(options)
         Parent = notification,
         BackgroundColor3 = typeColor,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 3, 1, 0),
+        Size = UDim2.new(0, 4, 1, 0),
     })
     
     Create("TextLabel", {
         Name = "Title",
         Parent = notification,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 14, 0, 10),
-        Size = UDim2.new(1, -50, 0, 16),
+        Position = UDim2.new(0, 16, 0, 12),
+        Size = UDim2.new(1, -60, 0, 18),
         Font = Enum.Font.GothamBold,
         Text = title,
         TextColor3 = FSlib.Theme.Text,
-        TextSize = 12,
+        TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     
@@ -205,26 +203,27 @@ function FSlib:Notify(options)
         Name = "Message",
         Parent = notification,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 14, 0, 28),
-        Size = UDim2.new(1, -20, 0, 24),
+        Position = UDim2.new(0, 16, 0, 32),
+        Size = UDim2.new(1, -24, 0, 30),
         Font = Enum.Font.Gotham,
         Text = message,
         TextColor3 = FSlib.Theme.TextDark,
-        TextSize = 11,
+        TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextWrapped = true,
+        TextYAlignment = Enum.TextYAlignment.Top,
     })
     
     local closeBtn = Create("TextButton", {
         Name = "Close",
         Parent = notification,
         BackgroundTransparency = 1,
-        Position = UDim2.new(1, -24, 0, 8),
-        Size = UDim2.new(0, 16, 0, 16),
+        Position = UDim2.new(1, -30, 0, 10),
+        Size = UDim2.new(0, 20, 0, 20),
         Font = Enum.Font.GothamBold,
         Text = "×",
         TextColor3 = FSlib.Theme.TextDisabled,
-        TextSize = 16,
+        TextSize = 18,
     })
     
     -- Animate in
@@ -261,7 +260,7 @@ function FSlib:CreateWatermark(options)
         BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 20, 0, 20),
-        Size = UDim2.new(0, 0, 0, 28),
+        Size = UDim2.new(0, 0, 0, 32),
         AutomaticSize = Enum.AutomaticSize.X,
     })
     
@@ -277,14 +276,14 @@ function FSlib:CreateWatermark(options)
         Parent = watermark,
         BackgroundColor3 = FSlib.Theme.Primary,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 3, 1, 0),
+        Size = UDim2.new(0, 4, 1, 0),
     })
     BindTheme(accent, "BackgroundColor3", "Primary")
     
     Create("UIPadding", {
         Parent = watermark,
-        PaddingLeft = UDim.new(0, 12),
-        PaddingRight = UDim.new(0, 12),
+        PaddingLeft = UDim.new(0, 16),
+        PaddingRight = UDim.new(0, 16),
     })
     
     local textLabel = Create("TextLabel", {
@@ -296,7 +295,7 @@ function FSlib:CreateWatermark(options)
         Font = Enum.Font.GothamMedium,
         Text = text,
         TextColor3 = FSlib.Theme.Text,
-        TextSize = 11,
+        TextSize = 12,
     })
     
     -- Drag functionality
@@ -344,7 +343,7 @@ function FSlib:CreateWatermark(options)
         local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
         local time = os.date("%H:%M:%S")
         
-        textLabel.Text = string.format("%s  |  FPS: %d  |  Ping: %dms  |  %s", text, fps, ping, time)
+        textLabel.Text = string.format("%s   |   FPS: %d   |   Ping: %dms   |   %s", text, fps, ping, time)
     end)
     
     local WatermarkAPI = {}
@@ -373,7 +372,7 @@ function FSlib:CreateWindow(options)
     local title = options.Title or "FSlib"
     local subtitle = options.Subtitle or "v" .. self._VERSION
     local toggleKey = options.ToggleKey or Enum.KeyCode.RightControl
-    local size = options.Size or UDim2.new(0, 550, 0, 380)
+    local size = options.Size or UDim2.new(0, 580, 0, 420)
     
     local screenGui = Create("ScreenGui", {
         Name = "FSlib_" .. title,
@@ -406,7 +405,7 @@ function FSlib:CreateWindow(options)
         Parent = mainFrame,
         BackgroundColor3 = FSlib.Theme.Primary,
         BorderSizePixel = 0,
-        Size = UDim2.new(0, 3, 1, 0),
+        Size = UDim2.new(0, 4, 1, 0),
     })
     BindTheme(brandAccent, "BackgroundColor3", "Primary")
     
@@ -416,8 +415,8 @@ function FSlib:CreateWindow(options)
         Parent = mainFrame,
         BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 3, 0, 0),
-        Size = UDim2.new(1, -3, 0, 32),
+        Position = UDim2.new(0, 4, 0, 0),
+        Size = UDim2.new(1, -4, 0, 36),
     })
     BindTheme(titleBar, "BackgroundColor3", "BackgroundSecondary")
     
@@ -435,13 +434,13 @@ function FSlib:CreateWindow(options)
         Name = "Title",
         Parent = titleBar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 0),
+        Position = UDim2.new(0, 14, 0, 0),
         Size = UDim2.new(0, 0, 1, 0),
         AutomaticSize = Enum.AutomaticSize.X,
         Font = Enum.Font.GothamBold,
         Text = title,
         TextColor3 = FSlib.Theme.Text,
-        TextSize = 13,
+        TextSize = 14,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     BindTheme(titleLabel, "TextColor3", "Text")
@@ -450,19 +449,19 @@ function FSlib:CreateWindow(options)
         Name = "Subtitle",
         Parent = titleBar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12 + titleLabel.TextBounds.X + 8, 0, 0),
+        Position = UDim2.new(0, 14 + titleLabel.TextBounds.X + 10, 0, 0),
         Size = UDim2.new(0, 0, 1, 0),
         AutomaticSize = Enum.AutomaticSize.X,
         Font = Enum.Font.Gotham,
         Text = subtitle,
         TextColor3 = FSlib.Theme.TextDisabled,
-        TextSize = 11,
+        TextSize = 12,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     BindTheme(subtitleLabel, "TextColor3", "TextDisabled")
     
     titleLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
-        subtitleLabel.Position = UDim2.new(0, 12 + titleLabel.TextBounds.X + 8, 0, 0)
+        subtitleLabel.Position = UDim2.new(0, 14 + titleLabel.TextBounds.X + 10, 0, 0)
     end)
     
     -- Tab bar
@@ -471,8 +470,8 @@ function FSlib:CreateWindow(options)
         Parent = mainFrame,
         BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 3, 0, 32),
-        Size = UDim2.new(1, -3, 0, 32),
+        Position = UDim2.new(0, 4, 0, 36),
+        Size = UDim2.new(1, -4, 0, 36),
     })
     BindTheme(tabBar, "BackgroundColor3", "BackgroundSecondary")
     
@@ -490,15 +489,15 @@ function FSlib:CreateWindow(options)
         Name = "TabContainer",
         Parent = tabBar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 8, 0, 0),
-        Size = UDim2.new(1, -16, 1, -1),
+        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(1, -20, 1, -1),
     })
     
     Create("UIListLayout", {
         Parent = tabContainer,
         FillDirection = Enum.FillDirection.Horizontal,
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 4),
+        Padding = UDim.new(0, 6),
     })
     
     -- Tab indicator
@@ -507,8 +506,8 @@ function FSlib:CreateWindow(options)
         Parent = tabBar,
         BackgroundColor3 = FSlib.Theme.Primary,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 8, 1, -2),
-        Size = UDim2.new(0, 50, 0, 2),
+        Position = UDim2.new(0, 10, 1, -3),
+        Size = UDim2.new(0, 60, 0, 3),
     })
     BindTheme(tabIndicator, "BackgroundColor3", "Primary")
     
@@ -517,8 +516,8 @@ function FSlib:CreateWindow(options)
         Name = "ContentArea",
         Parent = mainFrame,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 3, 0, 64),
-        Size = UDim2.new(1, -3, 1, -64),
+        Position = UDim2.new(0, 4, 0, 72),
+        Size = UDim2.new(1, -4, 1, -72),
         ClipsDescendants = true,
     })
     
@@ -580,14 +579,14 @@ function FSlib:CreateWindow(options)
             Font = Enum.Font.GothamMedium,
             Text = tabName,
             TextColor3 = FSlib.Theme.TextDisabled,
-            TextSize = 11,
+            TextSize = 12,
             LayoutOrder = tabIndex,
         })
         
         Create("UIPadding", {
             Parent = tabButton,
-            PaddingLeft = UDim.new(0, 12),
-            PaddingRight = UDim.new(0, 12),
+            PaddingLeft = UDim.new(0, 14),
+            PaddingRight = UDim.new(0, 14),
         })
         
         -- Tab content
@@ -597,7 +596,7 @@ function FSlib:CreateWindow(options)
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 1, 0),
             CanvasSize = UDim2.new(0, 0, 0, 0),
-            ScrollBarThickness = 3,
+            ScrollBarThickness = 4,
             ScrollBarImageColor3 = FSlib.Theme.Primary,
             AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y,
             Visible = false,
@@ -605,10 +604,10 @@ function FSlib:CreateWindow(options)
         
         Create("UIPadding", {
             Parent = tabContent,
-            PaddingLeft = UDim.new(0, 12),
-            PaddingRight = UDim.new(0, 12),
-            PaddingTop = UDim.new(0, 12),
-            PaddingBottom = UDim.new(0, 12),
+            PaddingLeft = UDim.new(0, 14),
+            PaddingRight = UDim.new(0, 14),
+            PaddingTop = UDim.new(0, 14),
+            PaddingBottom = UDim.new(0, 14),
         })
         
         -- Two column layout
@@ -617,29 +616,29 @@ function FSlib:CreateWindow(options)
             Parent = tabContent,
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 0, 0, 0),
-            Size = UDim2.new(0.5, -6, 0, 0),
+            Size = UDim2.new(0.5, -8, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
         })
         
         Create("UIListLayout", {
             Parent = leftColumn,
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 10),
+            Padding = UDim.new(0, 12),
         })
         
         local rightColumn = Create("Frame", {
             Name = "RightColumn",
             Parent = tabContent,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0.5, 6, 0, 0),
-            Size = UDim2.new(0.5, -6, 0, 0),
+            Position = UDim2.new(0.5, 8, 0, 0),
+            Size = UDim2.new(0.5, -8, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
         })
         
         Create("UIListLayout", {
             Parent = rightColumn,
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 10),
+            Padding = UDim.new(0, 12),
         })
         
         local Tab = {
@@ -665,8 +664,8 @@ function FSlib:CreateWindow(options)
             local buttonWidth = tabButton.AbsoluteSize.X
             
             Tween(tabIndicator, {
-                Position = UDim2.new(0, buttonPos + 8, 1, -2),
-                Size = UDim2.new(0, buttonWidth, 0, 2)
+                Position = UDim2.new(0, buttonPos + 10, 1, -3),
+                Size = UDim2.new(0, buttonWidth, 0, 3)
             }, 0.2)
         end
         
@@ -703,8 +702,8 @@ function FSlib:CreateWindow(options)
                 Parent = sectionFrame,
                 BackgroundColor3 = FSlib.Theme.Primary,
                 BorderSizePixel = 0,
-                Position = UDim2.new(0, 0, 0, 8),
-                Size = UDim2.new(0, 3, 0, 16),
+                Position = UDim2.new(0, 0, 0, 10),
+                Size = UDim2.new(0, 4, 0, 18),
             })
             BindTheme(sectionAccent, "BackgroundColor3", "Primary")
             
@@ -712,19 +711,19 @@ function FSlib:CreateWindow(options)
                 Name = "Header",
                 Parent = sectionFrame,
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 32),
+                Size = UDim2.new(1, 0, 0, 38),
             })
             
             Create("TextLabel", {
                 Name = "Title",
                 Parent = sectionHeader,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 14, 0, 0),
-                Size = UDim2.new(1, -14, 1, 0),
+                Position = UDim2.new(0, 16, 0, 0),
+                Size = UDim2.new(1, -16, 1, 0),
                 Font = Enum.Font.GothamBold,
                 Text = sectionName,
                 TextColor3 = FSlib.Theme.Text,
-                TextSize = 11,
+                TextSize = 12,
                 TextXAlignment = Enum.TextXAlignment.Left,
             })
             
@@ -742,7 +741,7 @@ function FSlib:CreateWindow(options)
                 Name = "Elements",
                 Parent = sectionFrame,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0, 32),
+                Position = UDim2.new(0, 0, 0, 38),
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
             })
@@ -750,12 +749,13 @@ function FSlib:CreateWindow(options)
             Create("UIListLayout", {
                 Parent = elementsHolder,
                 SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 0),
+                Padding = UDim.new(0, 2),
             })
             
             Create("UIPadding", {
                 Parent = elementsHolder,
-                PaddingBottom = UDim.new(0, 8),
+                PaddingTop = UDim.new(0, 6),
+                PaddingBottom = UDim.new(0, 10),
             })
             
             local Section = {
@@ -782,7 +782,7 @@ function FSlib:CreateWindow(options)
                     Name = name,
                     Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 34),
                     LayoutOrder = self.ElementCount,
                 })
                 
@@ -790,12 +790,12 @@ function FSlib:CreateWindow(options)
                     Name = "Label",
                     Parent = toggleFrame,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 14, 0, 0),
-                    Size = UDim2.new(1, -60, 1, 0),
+                    Position = UDim2.new(0, 16, 0, 0),
+                    Size = UDim2.new(1, -70, 1, 0),
                     Font = Enum.Font.Gotham,
                     Text = name,
                     TextColor3 = FSlib.Theme.TextDark,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                 })
                 BindTheme(toggleLabel, "TextColor3", "TextDark")
@@ -805,8 +805,8 @@ function FSlib:CreateWindow(options)
                     Parent = toggleFrame,
                     BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(1, -46, 0.5, -8),
-                    Size = UDim2.new(0, 32, 0, 16),
+                    Position = UDim2.new(1, -52, 0.5, -9),
+                    Size = UDim2.new(0, 36, 0, 18),
                 })
                 
                 Create("UIStroke", {
@@ -820,8 +820,8 @@ function FSlib:CreateWindow(options)
                     Parent = toggleContainer,
                     BackgroundColor3 = value and FSlib.Theme.Primary or FSlib.Theme.TextDisabled,
                     BorderSizePixel = 0,
-                    Position = value and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6),
-                    Size = UDim2.new(0, 12, 0, 12),
+                    Position = value and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7),
+                    Size = UDim2.new(0, 14, 0, 14),
                 })
                 
                 local toggleButton = Create("TextButton", {
@@ -839,7 +839,7 @@ function FSlib:CreateWindow(options)
                     end
                     
                     Tween(toggleSlider, {
-                        Position = value and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6),
+                        Position = value and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7),
                         BackgroundColor3 = value and FSlib.Theme.Primary or FSlib.Theme.TextDisabled,
                     }, 0.15)
                     
@@ -885,7 +885,7 @@ function FSlib:CreateWindow(options)
                     Name = name,
                     Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 40),
+                    Size = UDim2.new(1, 0, 0, 46),
                     LayoutOrder = self.ElementCount,
                 })
                 
@@ -893,12 +893,12 @@ function FSlib:CreateWindow(options)
                     Name = "Label",
                     Parent = sliderFrame,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 14, 0, 4),
-                    Size = UDim2.new(0.5, -14, 0, 16),
+                    Position = UDim2.new(0, 16, 0, 6),
+                    Size = UDim2.new(0.5, -16, 0, 18),
                     Font = Enum.Font.Gotham,
                     Text = name,
                     TextColor3 = FSlib.Theme.TextDark,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                 })
                 BindTheme(sliderLabel, "TextColor3", "TextDark")
@@ -908,12 +908,12 @@ function FSlib:CreateWindow(options)
                     Parent = sliderFrame,
                     BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(1, -60, 0, 4),
-                    Size = UDim2.new(0, 46, 0, 16),
+                    Position = UDim2.new(1, -66, 0, 6),
+                    Size = UDim2.new(0, 50, 0, 18),
                     Font = Enum.Font.GothamMedium,
                     Text = tostring(value) .. suffix,
                     TextColor3 = Color3.fromRGB(255, 255, 255),
-                    TextSize = 10,
+                    TextSize = 11,
                     ClearTextOnFocus = false,
                 })
                 
@@ -928,8 +928,8 @@ function FSlib:CreateWindow(options)
                     Parent = sliderFrame,
                     BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 14, 0, 24),
-                    Size = UDim2.new(1, -28, 0, 8),
+                    Position = UDim2.new(0, 16, 0, 28),
+                    Size = UDim2.new(1, -32, 0, 10),
                 })
                 
                 Create("UIStroke", {
@@ -952,8 +952,8 @@ function FSlib:CreateWindow(options)
                     Parent = sliderFill,
                     BackgroundColor3 = FSlib.Theme.Text,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(1, -2, 0.5, -5),
-                    Size = UDim2.new(0, 4, 0, 10),
+                    Position = UDim2.new(1, -2, 0.5, -6),
+                    Size = UDim2.new(0, 4, 0, 12),
                     AnchorPoint = Vector2.new(0, 0),
                 })
                 
@@ -1047,7 +1047,7 @@ function FSlib:CreateWindow(options)
                     Name = name,
                     Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 40),
+                    Size = UDim2.new(1, 0, 0, 46),
                     LayoutOrder = self.ElementCount,
                     ZIndex = 10,
                 })
@@ -1056,12 +1056,12 @@ function FSlib:CreateWindow(options)
                     Name = "Label",
                     Parent = dropdownFrame,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 14, 0, 4),
-                    Size = UDim2.new(1, -28, 0, 14),
+                    Position = UDim2.new(0, 16, 0, 4),
+                    Size = UDim2.new(1, -32, 0, 16),
                     Font = Enum.Font.Gotham,
                     Text = name,
                     TextColor3 = FSlib.Theme.TextDark,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ZIndex = 10,
                 })
@@ -1072,8 +1072,8 @@ function FSlib:CreateWindow(options)
                     Parent = dropdownFrame,
                     BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 14, 0, 20),
-                    Size = UDim2.new(1, -28, 0, 22),
+                    Position = UDim2.new(0, 16, 0, 22),
+                    Size = UDim2.new(1, -32, 0, 24),
                     Font = Enum.Font.Gotham,
                     Text = "",
                     ZIndex = 10,
@@ -1089,12 +1089,12 @@ function FSlib:CreateWindow(options)
                     Name = "Selected",
                     Parent = dropdownButton,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 8, 0, 0),
-                    Size = UDim2.new(1, -24, 1, 0),
+                    Position = UDim2.new(0, 10, 0, 0),
+                    Size = UDim2.new(1, -30, 1, 0),
                     Font = Enum.Font.Gotham,
                     Text = value or "Select...",
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ZIndex = 10,
                 })
@@ -1103,12 +1103,12 @@ function FSlib:CreateWindow(options)
                     Name = "Arrow",
                     Parent = dropdownButton,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(1, -18, 0, 0),
-                    Size = UDim2.new(0, 12, 1, 0),
+                    Position = UDim2.new(1, -22, 0, 0),
+                    Size = UDim2.new(0, 14, 1, 0),
                     Font = Enum.Font.GothamBold,
                     Text = "▼",
                     TextColor3 = FSlib.Theme.TextDisabled,
-                    TextSize = 8,
+                    TextSize = 10,
                     ZIndex = 10,
                 })
                 
@@ -1169,7 +1169,7 @@ function FSlib:CreateWindow(options)
                             Parent = listContent,
                             BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                             BackgroundTransparency = 0,
-                            Size = UDim2.new(1, 0, 0, 26),
+                            Size = UDim2.new(1, 0, 0, 28),
                             Font = Enum.Font.Gotham,
                             Text = "",
                             LayoutOrder = i,
@@ -1184,7 +1184,7 @@ function FSlib:CreateWindow(options)
                             BackgroundColor3 = FSlib.Theme.Primary,
                             BorderSizePixel = 0,
                             Position = UDim2.new(0, 0, 0, 0),
-                            Size = UDim2.new(0, 3, 1, 0),
+                            Size = UDim2.new(0, 4, 1, 0),
                             Visible = option == value,
                             ZIndex = 102,
                         })
@@ -1194,12 +1194,12 @@ function FSlib:CreateWindow(options)
                             Name = "Label",
                             Parent = optionButton,
                             BackgroundTransparency = 1,
-                            Position = UDim2.new(0, 12, 0, 0),
-                            Size = UDim2.new(1, -12, 1, 0),
+                            Position = UDim2.new(0, 14, 0, 0),
+                            Size = UDim2.new(1, -14, 1, 0),
                             Font = Enum.Font.Gotham,
                             Text = option,
                             TextColor3 = option == value and FSlib.Theme.Text or FSlib.Theme.TextDark,
-                            TextSize = 11,
+                            TextSize = 12,
                             TextXAlignment = Enum.TextXAlignment.Left,
                             ZIndex = 102,
                         })
@@ -1239,7 +1239,7 @@ function FSlib:CreateWindow(options)
                     if isOpen then
                         local buttonPos = dropdownButton.AbsolutePosition
                         local buttonSize = dropdownButton.AbsoluteSize
-                        dropdownList.Position = UDim2.new(0, buttonPos.X, 0, buttonPos.Y + buttonSize.Y + 2)
+                        dropdownList.Position = UDim2.new(0, buttonPos.X, 0, buttonPos.Y + buttonSize.Y + 4)
                         dropdownList.Size = UDim2.new(0, buttonSize.X, 0, 0)
                     end
                 end
@@ -1297,7 +1297,7 @@ function FSlib:CreateWindow(options)
                     Name = name,
                     Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 34),
                     LayoutOrder = self.ElementCount,
                 })
                 
@@ -1305,12 +1305,12 @@ function FSlib:CreateWindow(options)
                     Name = "Label",
                     Parent = keybindFrame,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 14, 0, 0),
-                    Size = UDim2.new(1, -80, 1, 0),
+                    Position = UDim2.new(0, 16, 0, 0),
+                    Size = UDim2.new(1, -90, 1, 0),
                     Font = Enum.Font.Gotham,
                     Text = name,
                     TextColor3 = FSlib.Theme.TextDark,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                 })
                 BindTheme(keybindLabel, "TextColor3", "TextDark")
@@ -1320,12 +1320,12 @@ function FSlib:CreateWindow(options)
                     Parent = keybindFrame,
                     BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(1, -66, 0.5, -10),
-                    Size = UDim2.new(0, 52, 0, 20),
+                    Position = UDim2.new(1, -74, 0.5, -11),
+                    Size = UDim2.new(0, 58, 0, 22),
                     Font = Enum.Font.GothamMedium,
                     Text = value.Name or "None",
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 10,
+                    TextSize = 11,
                     AutoButtonColor = false,
                 })
                 
@@ -1350,7 +1350,9 @@ function FSlib:CreateWindow(options)
                             keybindButton.Text = value.Name
                             listening = false
                         elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
-                            if not keybindButton:IsDescendantOf(input.Target) then
+                            -- Check if clicked outside
+                            task.wait()
+                            if not keybindButton:IsDescendantOf(game:GetService("GuiService"):GetGuiInset()) then
                                 listening = false
                                 keybindButton.Text = value.Name or "None"
                             end
@@ -1399,7 +1401,7 @@ function FSlib:CreateWindow(options)
                     Name = name,
                     Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 34),
                     LayoutOrder = self.ElementCount,
                 })
                 
@@ -1407,12 +1409,12 @@ function FSlib:CreateWindow(options)
                     Name = "Label",
                     Parent = colorFrame,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 14, 0, 0),
-                    Size = UDim2.new(1, -60, 1, 0),
+                    Position = UDim2.new(0, 16, 0, 0),
+                    Size = UDim2.new(1, -70, 1, 0),
                     Font = Enum.Font.Gotham,
                     Text = name,
                     TextColor3 = FSlib.Theme.TextDark,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                 })
                 BindTheme(colorLabel, "TextColor3", "TextDark")
@@ -1422,8 +1424,8 @@ function FSlib:CreateWindow(options)
                     Parent = colorFrame,
                     BackgroundColor3 = value,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(1, -46, 0.5, -8),
-                    Size = UDim2.new(0, 32, 0, 16),
+                    Position = UDim2.new(1, -52, 0.5, -9),
+                    Size = UDim2.new(0, 36, 0, 18),
                     Text = "",
                     AutoButtonColor = false,
                 })
@@ -1440,9 +1442,9 @@ function FSlib:CreateWindow(options)
                     Parent = screenGui,
                     BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                     BorderSizePixel = 0,
-                    Size = UDim2.new(0, 220, 0, 200),
+                    Size = UDim2.new(0, 240, 0, 220),
                     Visible = false,
-                    ZIndex = 200,
+                    ZIndex = 500,
                     Active = true,
                 })
                 
@@ -1457,22 +1459,22 @@ function FSlib:CreateWindow(options)
                     Name = "Header",
                     Parent = pickerPanel,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 28),
-                    ZIndex = 201,
+                    Size = UDim2.new(1, 0, 0, 32),
+                    ZIndex = 501,
                 })
                 
                 Create("TextLabel", {
                     Name = "Title",
                     Parent = panelHeader,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 10, 0, 0),
-                    Size = UDim2.new(1, -10, 1, 0),
+                    Position = UDim2.new(0, 12, 0, 0),
+                    Size = UDim2.new(1, -12, 1, 0),
                     Font = Enum.Font.GothamBold,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    ZIndex = 201,
+                    ZIndex = 501,
                 })
                 
                 Create("Frame", {
@@ -1482,7 +1484,7 @@ function FSlib:CreateWindow(options)
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 0, 1, -1),
                     Size = UDim2.new(1, 0, 0, 1),
-                    ZIndex = 201,
+                    ZIndex = 501,
                 })
                 
                 -- SV Picker (Saturation/Value)
@@ -1491,9 +1493,9 @@ function FSlib:CreateWindow(options)
                     Parent = pickerPanel,
                     BackgroundColor3 = Color3.fromHSV(h, 1, 1),
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 10, 0, 38),
-                    Size = UDim2.new(0, 160, 0, 100),
-                    ZIndex = 201,
+                    Position = UDim2.new(0, 12, 0, 44),
+                    Size = UDim2.new(0, 170, 0, 110),
+                    ZIndex = 501,
                 })
                 
                 Create("UIStroke", {
@@ -1508,7 +1510,7 @@ function FSlib:CreateWindow(options)
                     Parent = svPicker,
                     BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                     Size = UDim2.new(1, 0, 1, 0),
-                    ZIndex = 202,
+                    ZIndex = 502,
                 })
                 
                 Create("UIGradient", {
@@ -1525,7 +1527,7 @@ function FSlib:CreateWindow(options)
                     Parent = svPicker,
                     BackgroundColor3 = Color3.fromRGB(0, 0, 0),
                     Size = UDim2.new(1, 0, 1, 0),
-                    ZIndex = 203,
+                    ZIndex = 503,
                 })
                 
                 Create("UIGradient", {
@@ -1542,15 +1544,20 @@ function FSlib:CreateWindow(options)
                     Parent = svPicker,
                     BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                     BorderSizePixel = 0,
-                    Position = UDim2.new(s, -5, 1 - v, -5),
-                    Size = UDim2.new(0, 10, 0, 10),
-                    ZIndex = 205,
+                    Position = UDim2.new(s, -6, 1 - v, -6),
+                    Size = UDim2.new(0, 12, 0, 12),
+                    ZIndex = 505,
+                })
+                
+                Create("UICorner", {
+                    Parent = svCursor,
+                    CornerRadius = UDim.new(1, 0),
                 })
                 
                 Create("UIStroke", {
                     Parent = svCursor,
                     Color = Color3.fromRGB(0, 0, 0),
-                    Thickness = 1,
+                    Thickness = 2,
                 })
                 
                 local svButton = Create("TextButton", {
@@ -1559,7 +1566,7 @@ function FSlib:CreateWindow(options)
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 1, 0),
                     Text = "",
-                    ZIndex = 206,
+                    ZIndex = 506,
                     Active = true,
                 })
                 
@@ -1569,9 +1576,9 @@ function FSlib:CreateWindow(options)
                     Parent = pickerPanel,
                     BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 180, 0, 38),
-                    Size = UDim2.new(0, 20, 0, 100),
-                    ZIndex = 201,
+                    Position = UDim2.new(0, 194, 0, 44),
+                    Size = UDim2.new(0, 24, 0, 110),
+                    ZIndex = 501,
                 })
                 
                 Create("UIStroke", {
@@ -1599,9 +1606,9 @@ function FSlib:CreateWindow(options)
                     Parent = huePicker,
                     BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, -2, h, -2),
-                    Size = UDim2.new(1, 4, 0, 4),
-                    ZIndex = 202,
+                    Position = UDim2.new(0, -3, h, -3),
+                    Size = UDim2.new(1, 6, 0, 6),
+                    ZIndex = 502,
                 })
                 
                 Create("UIStroke", {
@@ -1616,7 +1623,7 @@ function FSlib:CreateWindow(options)
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 1, 0),
                     Text = "",
-                    ZIndex = 203,
+                    ZIndex = 503,
                     Active = true,
                 })
                 
@@ -1625,13 +1632,13 @@ function FSlib:CreateWindow(options)
                     Name = "HexLabel",
                     Parent = pickerPanel,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 10, 0, 148),
-                    Size = UDim2.new(0, 30, 0, 20),
+                    Position = UDim2.new(0, 12, 0, 166),
+                    Size = UDim2.new(0, 36, 0, 22),
                     Font = Enum.Font.GothamMedium,
                     Text = "HEX",
                     TextColor3 = FSlib.Theme.TextDark,
-                    TextSize = 10,
-                    ZIndex = 201,
+                    TextSize = 11,
+                    ZIndex = 501,
                 })
                 
                 local hexBox = Create("TextBox", {
@@ -1639,13 +1646,13 @@ function FSlib:CreateWindow(options)
                     Parent = pickerPanel,
                     BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 45, 0, 148),
-                    Size = UDim2.new(0, 70, 0, 20),
+                    Position = UDim2.new(0, 50, 0, 166),
+                    Size = UDim2.new(0, 80, 0, 22),
                     Font = Enum.Font.GothamMedium,
                     Text = string.format("#%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255)),
                     TextColor3 = Color3.fromRGB(255, 255, 255),
-                    TextSize = 10,
-                    ZIndex = 201,
+                    TextSize = 11,
+                    ZIndex = 501,
                     ClearTextOnFocus = false,
                 })
                 
@@ -1661,23 +1668,41 @@ function FSlib:CreateWindow(options)
                     Parent = pickerPanel,
                     BackgroundColor3 = FSlib.Theme.Primary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 130, 0, 148),
-                    Size = UDim2.new(0, 70, 0, 20),
+                    Position = UDim2.new(0, 144, 0, 166),
+                    Size = UDim2.new(0, 76, 0, 22),
                     Font = Enum.Font.GothamBold,
                     Text = "APPLY",
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 10,
-                    ZIndex = 201,
+                    TextSize = 11,
+                    ZIndex = 501,
                     AutoButtonColor = false,
                 })
                 BindTheme(applyBtn, "BackgroundColor3", "Primary")
                 
+                -- Preview box
+                local previewBox = Create("Frame", {
+                    Name = "PreviewBox",
+                    Parent = pickerPanel,
+                    BackgroundColor3 = value,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 12, 0, 196),
+                    Size = UDim2.new(1, -24, 0, 12),
+                    ZIndex = 501,
+                })
+                
+                Create("UIStroke", {
+                    Parent = previewBox,
+                    Color = FSlib.Theme.Border,
+                    Thickness = 1,
+                })
+                
                 local function updateColor()
                     value = Color3.fromHSV(h, s, v)
                     colorPreview.BackgroundColor3 = value
+                    previewBox.BackgroundColor3 = value
                     svPicker.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
-                    svCursor.Position = UDim2.new(s, -5, 1 - v, -5)
-                    hueCursor.Position = UDim2.new(0, -2, h, -2)
+                    svCursor.Position = UDim2.new(s, -6, 1 - v, -6)
+                    hueCursor.Position = UDim2.new(0, -3, h, -3)
                     hexBox.Text = string.format("#%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255))
                     
                     if flag then
@@ -1692,16 +1717,21 @@ function FSlib:CreateWindow(options)
                     svDragging = true
                 end)
                 
+                svButton.MouseButton1Up:Connect(function()
+                    svDragging = false
+                end)
+                
                 UserInputService.InputEnded:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         svDragging = false
                     end
                 end)
                 
-                UserInputService.InputChanged:Connect(function(input)
-                    if svDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                        local relX = math.clamp((input.Position.X - svPicker.AbsolutePosition.X) / svPicker.AbsoluteSize.X, 0, 1)
-                        local relY = math.clamp((input.Position.Y - svPicker.AbsolutePosition.Y) / svPicker.AbsoluteSize.Y, 0, 1)
+                RunService.RenderStepped:Connect(function()
+                    if svDragging then
+                        local mousePos = UserInputService:GetMouseLocation()
+                        local relX = math.clamp((mousePos.X - svPicker.AbsolutePosition.X) / svPicker.AbsoluteSize.X, 0, 1)
+                        local relY = math.clamp((mousePos.Y - svPicker.AbsolutePosition.Y - 36) / svPicker.AbsoluteSize.Y, 0, 1)
                         s = relX
                         v = 1 - relY
                         updateColor()
@@ -1715,15 +1745,20 @@ function FSlib:CreateWindow(options)
                     hueDragging = true
                 end)
                 
+                hueButton.MouseButton1Up:Connect(function()
+                    hueDragging = false
+                end)
+                
                 UserInputService.InputEnded:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         hueDragging = false
                     end
                 end)
                 
-                UserInputService.InputChanged:Connect(function(input)
-                    if hueDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                        local relY = math.clamp((input.Position.Y - huePicker.AbsolutePosition.Y) / huePicker.AbsoluteSize.Y, 0, 1)
+                RunService.RenderStepped:Connect(function()
+                    if hueDragging then
+                        local mousePos = UserInputService:GetMouseLocation()
+                        local relY = math.clamp((mousePos.Y - huePicker.AbsolutePosition.Y - 36) / huePicker.AbsoluteSize.Y, 0, 1)
                         h = relY
                         updateColor()
                     end
@@ -1751,11 +1786,11 @@ function FSlib:CreateWindow(options)
                     
                     if isOpen then
                         local previewPos = colorPreview.AbsolutePosition
-                        pickerPanel.Position = UDim2.new(0, previewPos.X - 180, 0, previewPos.Y + 20)
+                        pickerPanel.Position = UDim2.new(0, previewPos.X - 195, 0, previewPos.Y + 24)
                     end
                 end)
                 
-                -- Apply button
+                -- Apply button (only way to close)
                 applyBtn.MouseButton1Click:Connect(function()
                     isOpen = false
                     pickerPanel.Visible = false
@@ -1797,7 +1832,7 @@ function FSlib:CreateWindow(options)
                     Name = name,
                     Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 40),
+                    Size = UDim2.new(1, 0, 0, 46),
                     LayoutOrder = self.ElementCount,
                 })
                 
@@ -1805,12 +1840,12 @@ function FSlib:CreateWindow(options)
                     Name = "Label",
                     Parent = textboxFrame,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 14, 0, 4),
-                    Size = UDim2.new(1, -28, 0, 14),
+                    Position = UDim2.new(0, 16, 0, 4),
+                    Size = UDim2.new(1, -32, 0, 16),
                     Font = Enum.Font.Gotham,
                     Text = name,
                     TextColor3 = FSlib.Theme.TextDark,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                 })
                 BindTheme(textboxLabel, "TextColor3", "TextDark")
@@ -1820,22 +1855,22 @@ function FSlib:CreateWindow(options)
                     Parent = textboxFrame,
                     BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 14, 0, 20),
-                    Size = UDim2.new(1, -28, 0, 22),
+                    Position = UDim2.new(0, 16, 0, 22),
+                    Size = UDim2.new(1, -32, 0, 24),
                     Font = Enum.Font.Gotham,
                     Text = default,
                     PlaceholderText = placeholder,
                     TextColor3 = Color3.fromRGB(255, 255, 255),
                     PlaceholderColor3 = FSlib.Theme.TextDisabled,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ClearTextOnFocus = false,
                 })
                 
                 Create("UIPadding", {
                     Parent = textbox,
-                    PaddingLeft = UDim.new(0, 8),
-                    PaddingRight = UDim.new(0, 8),
+                    PaddingLeft = UDim.new(0, 10),
+                    PaddingRight = UDim.new(0, 10),
                 })
                 
                 Create("UIStroke", {
@@ -1880,7 +1915,7 @@ function FSlib:CreateWindow(options)
                     Name = name,
                     Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 36),
+                    Size = UDim2.new(1, 0, 0, 40),
                     LayoutOrder = self.ElementCount,
                 })
                 
@@ -1889,12 +1924,12 @@ function FSlib:CreateWindow(options)
                     Parent = buttonFrame,
                     BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 14, 0, 4),
-                    Size = UDim2.new(1, -28, 0, 28),
+                    Position = UDim2.new(0, 16, 0, 4),
+                    Size = UDim2.new(1, -32, 0, 30),
                     Font = Enum.Font.GothamMedium,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
+                    TextSize = 12,
                     AutoButtonColor = false,
                     ClipsDescendants = true,
                 })
@@ -1929,7 +1964,7 @@ function FSlib:CreateWindow(options)
                     Name = "Label",
                     Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 24),
+                    Size = UDim2.new(1, 0, 0, 28),
                     LayoutOrder = self.ElementCount,
                 })
                 
@@ -1937,12 +1972,12 @@ function FSlib:CreateWindow(options)
                     Name = "Text",
                     Parent = labelFrame,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 14, 0, 0),
-                    Size = UDim2.new(1, -28, 1, 0),
+                    Position = UDim2.new(0, 16, 0, 0),
+                    Size = UDim2.new(1, -32, 1, 0),
                     Font = Enum.Font.Gotham,
                     Text = text,
                     TextColor3 = FSlib.Theme.TextDisabled,
-                    TextSize = 11,
+                    TextSize = 12,
                     TextXAlignment = Enum.TextXAlignment.Left,
                 })
                 BindTheme(label, "TextColor3", "TextDisabled")
@@ -1964,7 +1999,7 @@ function FSlib:CreateWindow(options)
                     Name = "Divider",
                     Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 12),
+                    Size = UDim2.new(1, 0, 0, 14),
                     LayoutOrder = self.ElementCount,
                 })
                 
@@ -1973,8 +2008,8 @@ function FSlib:CreateWindow(options)
                     Parent = dividerFrame,
                     BackgroundColor3 = FSlib.Theme.Border,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 14, 0.5, 0),
-                    Size = UDim2.new(1, -28, 0, 1),
+                    Position = UDim2.new(0, 16, 0.5, 0),
+                    Size = UDim2.new(1, -32, 0, 1),
                 })
                 
                 return dividerFrame
