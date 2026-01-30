@@ -6,36 +6,40 @@
     ██║     ███████║███████╗██║██████╔╝
     ╚═╝     ╚══════╝╚══════╝╚═╝╚═════╝ 
     
-    FriendShip.Lua (FSlib) v1.0.7
-    A professional Roblox GUI Library
+    FriendShip.Lua (FSlib) v2.0.0
+    Minimal Tactical Style
     
-    GitHub: https://github.com/FSlib
-    Discord: discord.gg/FSlib
-]]
+    A professional Roblox GUI Library
+    Compatible with most executors
+--]]
 
 local FSlib = {
-    _VERSION = "1.0.7",
-    _NAME = "FriendShip.Lua",
+    _VERSION = "2.0.0",
+    _AUTHOR = "FSlib Team",
     Flags = {},
     Windows = {},
     Theme = {
-        Primary = Color3.fromRGB(139, 0, 0),
-        PrimaryDark = Color3.fromRGB(100, 0, 0),
-        PrimaryLight = Color3.fromRGB(180, 30, 30),
-        Background = Color3.fromRGB(12, 12, 12),
-        BackgroundSecondary = Color3.fromRGB(18, 18, 18),
-        BackgroundTertiary = Color3.fromRGB(25, 25, 25),
-        Border = Color3.fromRGB(40, 40, 40),
-        BorderLight = Color3.fromRGB(60, 60, 60),
+        Primary = Color3.fromRGB(229, 57, 53),
+        PrimaryDark = Color3.fromRGB(183, 28, 28),
+        PrimaryLight = Color3.fromRGB(255, 82, 82),
+        
+        Background = Color3.fromRGB(8, 8, 8),
+        BackgroundSecondary = Color3.fromRGB(13, 13, 13),
+        BackgroundTertiary = Color3.fromRGB(18, 18, 18),
+        
+        Border = Color3.fromRGB(26, 26, 26),
+        BorderLight = Color3.fromRGB(35, 35, 35),
+        
         Text = Color3.fromRGB(255, 255, 255),
-        TextDark = Color3.fromRGB(150, 150, 150),
-        TextDisabled = Color3.fromRGB(80, 80, 80),
-        Success = Color3.fromRGB(0, 180, 100),
-        Warning = Color3.fromRGB(255, 180, 0),
-        Error = Color3.fromRGB(255, 60, 60),
-        Info = Color3.fromRGB(60, 150, 255),
+        TextDark = Color3.fromRGB(180, 180, 180),
+        TextDisabled = Color3.fromRGB(112, 112, 112),
+        
+        Success = Color3.fromRGB(76, 175, 80),
+        Warning = Color3.fromRGB(255, 193, 7),
+        Error = Color3.fromRGB(244, 67, 54),
+        Info = Color3.fromRGB(33, 150, 243),
     },
-    _ThemeBindings = {},
+    ThemeBindings = {},
 }
 
 -- Services
@@ -44,21 +48,18 @@ local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local HttpService = game:GetService("HttpService")
-local Stats = game:GetService("Stats")
+local CoreGui = game:GetService("CoreGui")
 
-local Player = Players.LocalPlayer
-local Mouse = Player:GetMouse()
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
--- Utility Functions
-local function Create(className, properties, children)
+-- Utilities
+local function Create(className, properties)
     local instance = Instance.new(className)
     for prop, value in pairs(properties or {}) do
         if prop ~= "Parent" then
             instance[prop] = value
         end
-    end
-    for _, child in ipairs(children or {}) do
-        child.Parent = instance
     end
     if properties and properties.Parent then
         instance.Parent = properties.Parent
@@ -81,121 +82,360 @@ local function Ripple(button, x, y)
         Name = "Ripple",
         Parent = button,
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 0.7,
+        BackgroundTransparency = 0.8,
         BorderSizePixel = 0,
         Position = UDim2.new(0, x - button.AbsolutePosition.X, 0, y - button.AbsolutePosition.Y),
         Size = UDim2.new(0, 0, 0, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
         ZIndex = button.ZIndex + 1,
     })
+    
     Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = ripple })
     
-    local size = math.max(button.AbsoluteSize.X, button.AbsoluteSize.Y) * 2
-    Tween(ripple, { Size = UDim2.new(0, size, 0, size), BackgroundTransparency = 1 }, 0.5)
-    task.delay(0.5, function()
+    local maxSize = math.max(button.AbsoluteSize.X, button.AbsoluteSize.Y) * 2
+    Tween(ripple, { Size = UDim2.new(0, maxSize, 0, maxSize), BackgroundTransparency = 1 }, 0.4)
+    
+    task.delay(0.4, function()
         ripple:Destroy()
     end)
 end
 
--- 注册主题绑定
-local function BindToTheme(element, property, themeKey)
-    table.insert(FSlib._ThemeBindings, {
-        Element = element,
-        Property = property,
-        ThemeKey = themeKey
-    })
+local function BindTheme(instance, property, themeKey)
+    if not FSlib.ThemeBindings[themeKey] then
+        FSlib.ThemeBindings[themeKey] = {}
+    end
+    table.insert(FSlib.ThemeBindings[themeKey], { Instance = instance, Property = property })
+    instance[property] = FSlib.Theme[themeKey]
 end
 
--- 实时更新主题
-function FSlib:SetTheme(options)
-    for key, value in pairs(options) do
+function FSlib:SetTheme(newTheme)
+    for key, value in pairs(newTheme) do
         if self.Theme[key] then
             self.Theme[key] = value
-        end
-    end
-    
-    -- 更新所有绑定的元素
-    for _, binding in ipairs(self._ThemeBindings) do
-        if binding.Element and binding.Element.Parent then
-            local themeValue = self.Theme[binding.ThemeKey]
-            if themeValue then
-                pcall(function()
-                    binding.Element[binding.Property] = themeValue
-                end)
+            if self.ThemeBindings[key] then
+                for _, binding in ipairs(self.ThemeBindings[key]) do
+                    if binding.Instance and binding.Instance.Parent then
+                        binding.Instance[binding.Property] = value
+                    end
+                end
             end
         end
     end
 end
 
--- 获取主题颜色
-function FSlib:GetThemeColor(key)
-    return self.Theme[key]
-end
-
--- Create ScreenGui
-function FSlib:CreateWindow(options)
-    options = options or {}
-    local title = options.Title or "FSlib"
-    local subtitle = options.Subtitle or "v1.0.0"
-    local toggleKey = options.ToggleKey or Enum.KeyCode.RightControl
+-- Notification System
+function FSlib:Notify(options)
+    local title = options.Title or "Notification"
+    local message = options.Message or ""
+    local duration = options.Duration or 3
+    local notifType = options.Type or "Info"
     
-    -- Main ScreenGui
-    local screenGui = Create("ScreenGui", {
-        Name = "FSlib_" .. title,
-        Parent = game:GetService("CoreGui"),
+    local typeColors = {
+        Success = FSlib.Theme.Success,
+        Warning = FSlib.Theme.Warning,
+        Error = FSlib.Theme.Error,
+        Info = FSlib.Theme.Info,
+    }
+    
+    local typeColor = typeColors[notifType] or FSlib.Theme.Info
+    
+    local screenGui = CoreGui:FindFirstChild("FSlib_Notifications") or Create("ScreenGui", {
+        Name = "FSlib_Notifications",
+        Parent = CoreGui,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         ResetOnSpawn = false,
     })
     
-    -- Main Window Frame
+    local container = screenGui:FindFirstChild("Container") or Create("Frame", {
+        Name = "Container",
+        Parent = screenGui,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -20, 1, -20),
+        Size = UDim2.new(0, 280, 1, -40),
+        AnchorPoint = Vector2.new(1, 1),
+    })
+    
+    if not container:FindFirstChild("UIListLayout") then
+        Create("UIListLayout", {
+            Parent = container,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            VerticalAlignment = Enum.VerticalAlignment.Bottom,
+            Padding = UDim.new(0, 8),
+        })
+    end
+    
+    local notification = Create("Frame", {
+        Name = "Notification",
+        Parent = container,
+        BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 60),
+        ClipsDescendants = true,
+    })
+    
+    Create("UIStroke", {
+        Parent = notification,
+        Color = FSlib.Theme.Border,
+        Thickness = 1,
+    })
+    
+    -- Left accent bar
+    Create("Frame", {
+        Name = "Accent",
+        Parent = notification,
+        BackgroundColor3 = typeColor,
+        BorderSizePixel = 0,
+        Size = UDim2.new(0, 3, 1, 0),
+    })
+    
+    Create("TextLabel", {
+        Name = "Title",
+        Parent = notification,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 14, 0, 10),
+        Size = UDim2.new(1, -50, 0, 16),
+        Font = Enum.Font.GothamBold,
+        Text = title,
+        TextColor3 = FSlib.Theme.Text,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    })
+    
+    Create("TextLabel", {
+        Name = "Message",
+        Parent = notification,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 14, 0, 28),
+        Size = UDim2.new(1, -20, 0, 24),
+        Font = Enum.Font.Gotham,
+        Text = message,
+        TextColor3 = FSlib.Theme.TextDark,
+        TextSize = 11,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextWrapped = true,
+    })
+    
+    local closeBtn = Create("TextButton", {
+        Name = "Close",
+        Parent = notification,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -24, 0, 8),
+        Size = UDim2.new(0, 16, 0, 16),
+        Font = Enum.Font.GothamBold,
+        Text = "×",
+        TextColor3 = FSlib.Theme.TextDisabled,
+        TextSize = 16,
+    })
+    
+    -- Animate in
+    notification.Position = UDim2.new(1, 0, 0, 0)
+    Tween(notification, { Position = UDim2.new(0, 0, 0, 0) }, 0.3)
+    
+    local function close()
+        Tween(notification, { Position = UDim2.new(1, 0, 0, 0) }, 0.3)
+        task.delay(0.3, function()
+            notification:Destroy()
+        end)
+    end
+    
+    closeBtn.MouseButton1Click:Connect(close)
+    task.delay(duration, close)
+    
+    return notification
+end
+
+-- Watermark System
+function FSlib:CreateWatermark(options)
+    local text = options.Text or "FSlib"
+    
+    local screenGui = Create("ScreenGui", {
+        Name = "FSlib_Watermark",
+        Parent = CoreGui,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        ResetOnSpawn = false,
+    })
+    
+    local watermark = Create("Frame", {
+        Name = "Watermark",
+        Parent = screenGui,
+        BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 20, 0, 20),
+        Size = UDim2.new(0, 0, 0, 28),
+        AutomaticSize = Enum.AutomaticSize.X,
+    })
+    
+    Create("UIStroke", {
+        Parent = watermark,
+        Color = FSlib.Theme.Border,
+        Thickness = 1,
+    })
+    
+    -- Left accent
+    local accent = Create("Frame", {
+        Name = "Accent",
+        Parent = watermark,
+        BackgroundColor3 = FSlib.Theme.Primary,
+        BorderSizePixel = 0,
+        Size = UDim2.new(0, 3, 1, 0),
+    })
+    BindTheme(accent, "BackgroundColor3", "Primary")
+    
+    Create("UIPadding", {
+        Parent = watermark,
+        PaddingLeft = UDim.new(0, 12),
+        PaddingRight = UDim.new(0, 12),
+    })
+    
+    local textLabel = Create("TextLabel", {
+        Name = "Text",
+        Parent = watermark,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
+        Font = Enum.Font.GothamMedium,
+        Text = text,
+        TextColor3 = FSlib.Theme.Text,
+        TextSize = 11,
+    })
+    
+    -- Drag functionality
+    local dragging, dragStart, startPos
+    
+    watermark.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = watermark.Position
+        end
+    end)
+    
+    watermark.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            watermark.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+    
+    -- Update loop
+    local fps = 0
+    local frameCount = 0
+    local lastTime = tick()
+    
+    RunService.RenderStepped:Connect(function()
+        frameCount = frameCount + 1
+        if tick() - lastTime >= 1 then
+            fps = frameCount
+            frameCount = 0
+            lastTime = tick()
+        end
+        
+        local ping = math.floor(LocalPlayer:GetNetworkPing() * 1000)
+        local time = os.date("%H:%M:%S")
+        
+        textLabel.Text = string.format("%s  |  FPS: %d  |  Ping: %dms  |  %s", text, fps, ping, time)
+    end)
+    
+    local WatermarkAPI = {}
+    
+    function WatermarkAPI:SetText(newText)
+        text = newText
+    end
+    
+    function WatermarkAPI:Show()
+        watermark.Visible = true
+    end
+    
+    function WatermarkAPI:Hide()
+        watermark.Visible = false
+    end
+    
+    function WatermarkAPI:Destroy()
+        screenGui:Destroy()
+    end
+    
+    return WatermarkAPI
+end
+
+-- Main Window
+function FSlib:CreateWindow(options)
+    local title = options.Title or "FSlib"
+    local subtitle = options.Subtitle or "v" .. self._VERSION
+    local toggleKey = options.ToggleKey or Enum.KeyCode.RightControl
+    local size = options.Size or UDim2.new(0, 550, 0, 380)
+    
+    local screenGui = Create("ScreenGui", {
+        Name = "FSlib_" .. title,
+        Parent = CoreGui,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        ResetOnSpawn = false,
+    })
+    
     local mainFrame = Create("Frame", {
         Name = "MainFrame",
         Parent = screenGui,
         BackgroundColor3 = FSlib.Theme.Background,
         BorderSizePixel = 0,
-        Position = UDim2.new(0.5, -300, 0.5, -200),
-        Size = UDim2.new(0, 600, 0, 400),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = size,
+        AnchorPoint = Vector2.new(0.5, 0.5),
         ClipsDescendants = true,
-        ZIndex = 1,
     })
-    BindToTheme(mainFrame, "BackgroundColor3", "Background")
+    BindTheme(mainFrame, "BackgroundColor3", "Background")
     
-    -- Main Border
-    local mainBorder = Create("UIStroke", {
+    Create("UIStroke", {
         Parent = mainFrame,
         Color = FSlib.Theme.Border,
         Thickness = 1,
     })
-    BindToTheme(mainBorder, "Color", "Border")
     
-    -- Title Bar
+    -- Brand accent (left bar)
+    local brandAccent = Create("Frame", {
+        Name = "BrandAccent",
+        Parent = mainFrame,
+        BackgroundColor3 = FSlib.Theme.Primary,
+        BorderSizePixel = 0,
+        Size = UDim2.new(0, 3, 1, 0),
+    })
+    BindTheme(brandAccent, "BackgroundColor3", "Primary")
+    
+    -- Title bar
     local titleBar = Create("Frame", {
         Name = "TitleBar",
         Parent = mainFrame,
         BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
         BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 28),
-        ZIndex = 2,
+        Position = UDim2.new(0, 3, 0, 0),
+        Size = UDim2.new(1, -3, 0, 32),
     })
-    BindToTheme(titleBar, "BackgroundColor3", "BackgroundSecondary")
+    BindTheme(titleBar, "BackgroundColor3", "BackgroundSecondary")
     
-    local titleBorder = Create("Frame", {
-        Name = "TitleBorder",
+    -- Title bar bottom border
+    Create("Frame", {
+        Name = "Border",
         Parent = titleBar,
         BackgroundColor3 = FSlib.Theme.Border,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 0, 1, -1),
         Size = UDim2.new(1, 0, 0, 1),
-        ZIndex = 2,
     })
-    BindToTheme(titleBorder, "BackgroundColor3", "Border")
     
-    -- Title Label
     local titleLabel = Create("TextLabel", {
-        Name = "TitleLabel",
+        Name = "Title",
         Parent = titleBar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 10, 0, 0),
+        Position = UDim2.new(0, 12, 0, 0),
         Size = UDim2.new(0, 0, 1, 0),
         AutomaticSize = Enum.AutomaticSize.X,
         Font = Enum.Font.GothamBold,
@@ -203,88 +443,87 @@ function FSlib:CreateWindow(options)
         TextColor3 = FSlib.Theme.Text,
         TextSize = 13,
         TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 3,
     })
-    BindToTheme(titleLabel, "TextColor3", "Text")
+    BindTheme(titleLabel, "TextColor3", "Text")
     
     local subtitleLabel = Create("TextLabel", {
-        Name = "SubtitleLabel",
+        Name = "Subtitle",
         Parent = titleBar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0, 12 + titleLabel.TextBounds.X + 8, 0, 0),
         Size = UDim2.new(0, 0, 1, 0),
         AutomaticSize = Enum.AutomaticSize.X,
-        Font = Enum.Font.GothamMedium,
-        Text = " | " .. subtitle,
-        TextColor3 = FSlib.Theme.TextDark,
+        Font = Enum.Font.Gotham,
+        Text = subtitle,
+        TextColor3 = FSlib.Theme.TextDisabled,
         TextSize = 11,
         TextXAlignment = Enum.TextXAlignment.Left,
-        ZIndex = 3,
     })
-    BindToTheme(subtitleLabel, "TextColor3", "TextDark")
-    
-    -- 更新 subtitle 位置
-    task.defer(function()
-        subtitleLabel.Position = UDim2.new(0, 10 + titleLabel.TextBounds.X, 0, 0)
-    end)
+    BindTheme(subtitleLabel, "TextColor3", "TextDisabled")
     
     titleLabel:GetPropertyChangedSignal("TextBounds"):Connect(function()
-        subtitleLabel.Position = UDim2.new(0, 10 + titleLabel.TextBounds.X, 0, 0)
+        subtitleLabel.Position = UDim2.new(0, 12 + titleLabel.TextBounds.X + 8, 0, 0)
     end)
     
-    -- Tab Container
-    local tabContainer = Create("Frame", {
-        Name = "TabContainer",
+    -- Tab bar
+    local tabBar = Create("Frame", {
+        Name = "TabBar",
         Parent = mainFrame,
         BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
         BorderSizePixel = 0,
-        Position = UDim2.new(0, 0, 0, 28),
-        Size = UDim2.new(1, 0, 0, 28),
-        ZIndex = 2,
+        Position = UDim2.new(0, 3, 0, 32),
+        Size = UDim2.new(1, -3, 0, 32),
     })
-    BindToTheme(tabContainer, "BackgroundColor3", "BackgroundSecondary")
+    BindTheme(tabBar, "BackgroundColor3", "BackgroundSecondary")
     
-    local tabBorder = Create("Frame", {
-        Name = "TabBorder",
-        Parent = tabContainer,
+    -- Tab bar bottom border
+    Create("Frame", {
+        Name = "Border",
+        Parent = tabBar,
         BackgroundColor3 = FSlib.Theme.Border,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 0, 1, -1),
         Size = UDim2.new(1, 0, 0, 1),
-        ZIndex = 2,
     })
-    BindToTheme(tabBorder, "BackgroundColor3", "Border")
     
-    local tabList = Create("Frame", {
-        Name = "TabList",
-        Parent = tabContainer,
+    local tabContainer = Create("Frame", {
+        Name = "TabContainer",
+        Parent = tabBar,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 8, 0, 0),
-        Size = UDim2.new(1, -16, 1, 0),
-        ZIndex = 3,
+        Size = UDim2.new(1, -16, 1, -1),
     })
     
     Create("UIListLayout", {
-        Parent = tabList,
+        Parent = tabContainer,
         FillDirection = Enum.FillDirection.Horizontal,
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
     })
     
-    -- Content Container
-    local contentContainer = Create("Frame", {
-        Name = "ContentContainer",
+    -- Tab indicator
+    local tabIndicator = Create("Frame", {
+        Name = "Indicator",
+        Parent = tabBar,
+        BackgroundColor3 = FSlib.Theme.Primary,
+        BorderSizePixel = 0,
+        Position = UDim2.new(0, 8, 1, -2),
+        Size = UDim2.new(0, 50, 0, 2),
+    })
+    BindTheme(tabIndicator, "BackgroundColor3", "Primary")
+    
+    -- Content area
+    local contentArea = Create("Frame", {
+        Name = "ContentArea",
         Parent = mainFrame,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 56),
-        Size = UDim2.new(1, 0, 1, -56),
+        Position = UDim2.new(0, 3, 0, 64),
+        Size = UDim2.new(1, -3, 1, -64),
         ClipsDescendants = true,
-        ZIndex = 2,
     })
     
     -- Dragging
-    local dragging = false
-    local dragStart, startPos
+    local dragging, dragStart, startPos
     
     titleBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -304,222 +543,220 @@ function FSlib:CreateWindow(options)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
             mainFrame.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
             )
         end
     end)
     
-    -- Toggle Key
+    -- Toggle visibility
     UserInputService.InputBegan:Connect(function(input, processed)
         if not processed and input.KeyCode == toggleKey then
             mainFrame.Visible = not mainFrame.Visible
         end
     end)
     
-    -- Window Object
+    -- Window API
     local Window = {
-        ScreenGui = screenGui,
-        MainFrame = mainFrame,
         Tabs = {},
         ActiveTab = nil,
     }
     
-    -- Create Tab
     function Window:CreateTab(tabOptions)
-        tabOptions = tabOptions or {}
         local tabName = tabOptions.Name or "Tab"
-        local tabIcon = tabOptions.Icon or ""
+        local tabIcon = tabOptions.Icon or nil
         
         local tabIndex = #self.Tabs + 1
         
-        -- Tab Button
+        -- Tab button
         local tabButton = Create("TextButton", {
-            Name = "Tab_" .. tabName,
-            Parent = tabList,
+            Name = tabName,
+            Parent = tabContainer,
             BackgroundTransparency = 1,
-            Size = UDim2.new(0, 80, 1, -4),
+            Size = UDim2.new(0, 0, 1, 0),
+            AutomaticSize = Enum.AutomaticSize.X,
             Font = Enum.Font.GothamMedium,
-            Text = tabIcon ~= "" and (tabIcon .. " " .. tabName) or tabName,
-            TextColor3 = FSlib.Theme.TextDark,
-            TextSize = 12,
+            Text = tabName,
+            TextColor3 = FSlib.Theme.TextDisabled,
+            TextSize = 11,
             LayoutOrder = tabIndex,
-            ZIndex = 4,
         })
-        BindToTheme(tabButton, "TextColor3", "TextDark")
         
-        local tabIndicator = Create("Frame", {
-            Name = "Indicator",
+        Create("UIPadding", {
             Parent = tabButton,
-            BackgroundColor3 = FSlib.Theme.Primary,
-            BorderSizePixel = 0,
-            Position = UDim2.new(0, 0, 1, -2),
-            Size = UDim2.new(1, 0, 0, 2),
-            Visible = false,
-            ZIndex = 5,
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12),
         })
-        BindToTheme(tabIndicator, "BackgroundColor3", "Primary")
         
-        -- Tab Content
+        -- Tab content
         local tabContent = Create("ScrollingFrame", {
-            Name = "TabContent_" .. tabName,
-            Parent = contentContainer,
+            Name = tabName .. "_Content",
+            Parent = contentArea,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 8, 0, 8),
-            Size = UDim2.new(1, -16, 1, -16),
+            Size = UDim2.new(1, 0, 1, 0),
             CanvasSize = UDim2.new(0, 0, 0, 0),
-            ScrollBarThickness = 2,
+            ScrollBarThickness = 3,
             ScrollBarImageColor3 = FSlib.Theme.Primary,
+            AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y,
             Visible = false,
-            ZIndex = 3,
-            AutomaticCanvasSize = Enum.AutomaticSize.Y,
         })
-        BindToTheme(tabContent, "ScrollBarImageColor3", "Primary")
         
-        -- 左右两列容器
+        Create("UIPadding", {
+            Parent = tabContent,
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12),
+            PaddingTop = UDim.new(0, 12),
+            PaddingBottom = UDim.new(0, 12),
+        })
+        
+        -- Two column layout
         local leftColumn = Create("Frame", {
             Name = "LeftColumn",
             Parent = tabContent,
             BackgroundTransparency = 1,
             Position = UDim2.new(0, 0, 0, 0),
-            Size = UDim2.new(0.5, -4, 0, 0),
+            Size = UDim2.new(0.5, -6, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
-            ZIndex = 3,
         })
         
         Create("UIListLayout", {
             Parent = leftColumn,
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 8),
+            Padding = UDim.new(0, 10),
         })
         
         local rightColumn = Create("Frame", {
             Name = "RightColumn",
             Parent = tabContent,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0.5, 4, 0, 0),
-            Size = UDim2.new(0.5, -4, 0, 0),
+            Position = UDim2.new(0.5, 6, 0, 0),
+            Size = UDim2.new(0.5, -6, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
-            ZIndex = 3,
         })
         
         Create("UIListLayout", {
             Parent = rightColumn,
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 8),
+            Padding = UDim.new(0, 10),
         })
         
-        -- Tab Object
         local Tab = {
-            Name = tabName,
             Button = tabButton,
             Content = tabContent,
             LeftColumn = leftColumn,
             RightColumn = rightColumn,
             Sections = {},
-            SectionCount = 0,
         }
+        
+        local function selectTab()
+            for _, t in ipairs(Window.Tabs) do
+                t.Content.Visible = false
+                t.Button.TextColor3 = FSlib.Theme.TextDisabled
+            end
+            
+            tabContent.Visible = true
+            tabButton.TextColor3 = FSlib.Theme.Text
+            Window.ActiveTab = Tab
+            
+            -- Animate indicator
+            local buttonPos = tabButton.AbsolutePosition.X - tabContainer.AbsolutePosition.X
+            local buttonWidth = tabButton.AbsoluteSize.X
+            
+            Tween(tabIndicator, {
+                Position = UDim2.new(0, buttonPos + 8, 1, -2),
+                Size = UDim2.new(0, buttonWidth, 0, 2)
+            }, 0.2)
+        end
+        
+        tabButton.MouseButton1Click:Connect(selectTab)
         
         -- Create Section
         function Tab:CreateSection(sectionOptions)
-            sectionOptions = sectionOptions or {}
             local sectionName = sectionOptions.Name or "Section"
             local side = sectionOptions.Side or "Left"
             
-            self.SectionCount = self.SectionCount + 1
-            local parentColumn = side == "Left" and self.LeftColumn or self.RightColumn
+            local column = side == "Left" and leftColumn or rightColumn
+            local sectionIndex = #self.Sections + 1
             
-            -- Section Frame (容器)
             local sectionFrame = Create("Frame", {
-                Name = "Section_" .. sectionName,
-                Parent = parentColumn,
-                BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
+                Name = sectionName,
+                Parent = column,
+                BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                 BorderSizePixel = 0,
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
-                LayoutOrder = self.SectionCount,
-                ZIndex = 4,
+                LayoutOrder = sectionIndex,
             })
-            BindToTheme(sectionFrame, "BackgroundColor3", "BackgroundTertiary")
+            BindTheme(sectionFrame, "BackgroundColor3", "BackgroundSecondary")
             
-            -- Section 完整边框
-            local sectionStroke = Create("UIStroke", {
+            Create("UIStroke", {
                 Parent = sectionFrame,
                 Color = FSlib.Theme.Border,
                 Thickness = 1,
             })
-            BindToTheme(sectionStroke, "Color", "Border")
             
-            -- Section Header
+            -- Left accent line
+            local sectionAccent = Create("Frame", {
+                Name = "Accent",
+                Parent = sectionFrame,
+                BackgroundColor3 = FSlib.Theme.Primary,
+                BorderSizePixel = 0,
+                Position = UDim2.new(0, 0, 0, 8),
+                Size = UDim2.new(0, 3, 0, 16),
+            })
+            BindTheme(sectionAccent, "BackgroundColor3", "Primary")
+            
             local sectionHeader = Create("Frame", {
                 Name = "Header",
                 Parent = sectionFrame,
-                BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
-                BorderSizePixel = 0,
-                Position = UDim2.new(0, 0, 0, 0),
-                Size = UDim2.new(1, 0, 0, 24),
-                ZIndex = 5,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 32),
             })
-            BindToTheme(sectionHeader, "BackgroundColor3", "BackgroundSecondary")
             
-            -- Header 底部边框线
-            local headerBorder = Create("Frame", {
+            Create("TextLabel", {
+                Name = "Title",
+                Parent = sectionHeader,
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0, 14, 0, 0),
+                Size = UDim2.new(1, -14, 1, 0),
+                Font = Enum.Font.GothamBold,
+                Text = sectionName,
+                TextColor3 = FSlib.Theme.Text,
+                TextSize = 11,
+                TextXAlignment = Enum.TextXAlignment.Left,
+            })
+            
+            -- Header bottom border
+            Create("Frame", {
                 Name = "Border",
                 Parent = sectionHeader,
                 BackgroundColor3 = FSlib.Theme.Border,
                 BorderSizePixel = 0,
                 Position = UDim2.new(0, 0, 1, -1),
                 Size = UDim2.new(1, 0, 0, 1),
-                ZIndex = 6,
             })
-            BindToTheme(headerBorder, "BackgroundColor3", "Border")
             
-            local sectionTitle = Create("TextLabel", {
-                Name = "Title",
-                Parent = sectionHeader,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 0, 0),
-                Size = UDim2.new(1, -20, 1, 0),
-                Font = Enum.Font.GothamBold,
-                Text = sectionName:upper(),
-                TextColor3 = FSlib.Theme.Primary,
-                TextSize = 11,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                ZIndex = 6,
-            })
-            BindToTheme(sectionTitle, "TextColor3", "Primary")
-            
-            -- Elements Holder (元素容器)
             local elementsHolder = Create("Frame", {
                 Name = "Elements",
                 Parent = sectionFrame,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 8, 0, 32),
-                Size = UDim2.new(1, -16, 0, 0),
+                Position = UDim2.new(0, 0, 0, 32),
+                Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
-                ZIndex = 5,
             })
             
             Create("UIListLayout", {
                 Parent = elementsHolder,
                 SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 6),
+                Padding = UDim.new(0, 0),
             })
             
-            -- 底部 Padding
-            local bottomPadding = Create("Frame", {
-                Name = "BottomPadding",
-                Parent = sectionFrame,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 12),
-                LayoutOrder = 999999,
-                ZIndex = 5,
+            Create("UIPadding", {
+                Parent = elementsHolder,
+                PaddingBottom = UDim.new(0, 8),
             })
-            
-            -- 监听 elementsHolder 大小变化，更新 bottomPadding 位置
-            elementsHolder:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-                bottomPadding.Position = UDim2.new(0, 0, 0, 32 + elementsHolder.AbsoluteSize.Y)
-            end)
             
             local Section = {
                 Frame = sectionFrame,
@@ -527,11 +764,8 @@ function FSlib:CreateWindow(options)
                 ElementCount = 0,
             }
             
-            -- ============== UI ELEMENTS ==============
-            
-            -- Toggle (无对勾，颜色跟随主题)
+            -- Toggle
             function Section:CreateToggle(toggleOptions)
-                toggleOptions = toggleOptions or {}
                 local name = toggleOptions.Name or "Toggle"
                 local default = toggleOptions.Default or false
                 local flag = toggleOptions.Flag
@@ -545,45 +779,50 @@ function FSlib:CreateWindow(options)
                 end
                 
                 local toggleFrame = Create("Frame", {
-                    Name = "Toggle_" .. name,
-                    Parent = self.Content,
+                    Name = name,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 20),
+                    Size = UDim2.new(1, 0, 0, 32),
                     LayoutOrder = self.ElementCount,
-                    ZIndex = 10,
                 })
-                
-                local toggleBox = Create("Frame", {
-                    Name = "Box",
-                    Parent = toggleFrame,
-                    BackgroundColor3 = value and FSlib.Theme.Primary or FSlib.Theme.BackgroundSecondary,
-                    BorderSizePixel = 0,
-                    Position = UDim2.new(0, 0, 0.5, -6),
-                    Size = UDim2.new(0, 12, 0, 12),
-                    ZIndex = 11,
-                })
-                
-                local toggleStroke = Create("UIStroke", {
-                    Parent = toggleBox,
-                    Color = FSlib.Theme.Border,
-                    Thickness = 1,
-                })
-                BindToTheme(toggleStroke, "Color", "Border")
                 
                 local toggleLabel = Create("TextLabel", {
                     Name = "Label",
                     Parent = toggleFrame,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 20, 0, 0),
-                    Size = UDim2.new(1, -20, 1, 0),
-                    Font = Enum.Font.GothamMedium,
+                    Position = UDim2.new(0, 14, 0, 0),
+                    Size = UDim2.new(1, -60, 1, 0),
+                    Font = Enum.Font.Gotham,
                     Text = name,
-                    TextColor3 = FSlib.Theme.Text,
-                    TextSize = 12,
+                    TextColor3 = FSlib.Theme.TextDark,
+                    TextSize = 11,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    ZIndex = 11,
                 })
-                BindToTheme(toggleLabel, "TextColor3", "Text")
+                BindTheme(toggleLabel, "TextColor3", "TextDark")
+                
+                local toggleContainer = Create("Frame", {
+                    Name = "Container",
+                    Parent = toggleFrame,
+                    BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(1, -46, 0.5, -8),
+                    Size = UDim2.new(0, 32, 0, 16),
+                })
+                
+                Create("UIStroke", {
+                    Parent = toggleContainer,
+                    Color = FSlib.Theme.Border,
+                    Thickness = 1,
+                })
+                
+                local toggleSlider = Create("Frame", {
+                    Name = "Slider",
+                    Parent = toggleContainer,
+                    BackgroundColor3 = value and FSlib.Theme.Primary or FSlib.Theme.TextDisabled,
+                    BorderSizePixel = 0,
+                    Position = value and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6),
+                    Size = UDim2.new(0, 12, 0, 12),
+                })
                 
                 local toggleButton = Create("TextButton", {
                     Name = "Button",
@@ -591,41 +830,41 @@ function FSlib:CreateWindow(options)
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 1, 0),
                     Text = "",
-                    ZIndex = 13,
                 })
                 
                 local function updateToggle()
-                    if value then
-                        Tween(toggleBox, { BackgroundColor3 = FSlib.Theme.Primary }, 0.15)
-                    else
-                        Tween(toggleBox, { BackgroundColor3 = FSlib.Theme.BackgroundSecondary }, 0.15)
-                    end
-                    
+                    value = not value
                     if flag then
                         FSlib.Flags[flag] = value
                     end
+                    
+                    Tween(toggleSlider, {
+                        Position = value and UDim2.new(1, -14, 0.5, -6) or UDim2.new(0, 2, 0.5, -6),
+                        BackgroundColor3 = value and FSlib.Theme.Primary or FSlib.Theme.TextDisabled,
+                    }, 0.15)
+                    
                     callback(value)
                 end
                 
-                toggleButton.MouseButton1Click:Connect(function()
-                    value = not value
-                    updateToggle()
-                end)
+                toggleButton.MouseButton1Click:Connect(updateToggle)
                 
-                return {
-                    Set = function(_, newValue)
-                        value = newValue
+                local ToggleAPI = {}
+                
+                function ToggleAPI:Set(newValue)
+                    if newValue ~= value then
                         updateToggle()
-                    end,
-                    Get = function()
-                        return value
-                    end,
-                }
+                    end
+                end
+                
+                function ToggleAPI:Get()
+                    return value
+                end
+                
+                return ToggleAPI
             end
             
             -- Slider
             function Section:CreateSlider(sliderOptions)
-                sliderOptions = sliderOptions or {}
                 local name = sliderOptions.Name or "Slider"
                 local min = sliderOptions.Min or 0
                 local max = sliderOptions.Max or 100
@@ -643,161 +882,161 @@ function FSlib:CreateWindow(options)
                 end
                 
                 local sliderFrame = Create("Frame", {
-                    Name = "Slider_" .. name,
-                    Parent = self.Content,
+                    Name = name,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 40),
                     LayoutOrder = self.ElementCount,
-                    ZIndex = 10,
                 })
                 
                 local sliderLabel = Create("TextLabel", {
                     Name = "Label",
                     Parent = sliderFrame,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 0, 0, 0),
-                    Size = UDim2.new(0.6, 0, 0, 14),
-                    Font = Enum.Font.GothamMedium,
+                    Position = UDim2.new(0, 14, 0, 4),
+                    Size = UDim2.new(0.5, -14, 0, 16),
+                    Font = Enum.Font.Gotham,
                     Text = name,
-                    TextColor3 = FSlib.Theme.Text,
-                    TextSize = 12,
+                    TextColor3 = FSlib.Theme.TextDark,
+                    TextSize = 11,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    ZIndex = 11,
                 })
-                BindToTheme(sliderLabel, "TextColor3", "Text")
+                BindTheme(sliderLabel, "TextColor3", "TextDark")
                 
-                local sliderValueBox = Create("TextBox", {
+                local valueBox = Create("TextBox", {
                     Name = "ValueBox",
                     Parent = sliderFrame,
-                    BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
+                    BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(1, -50, 0, 0),
-                    Size = UDim2.new(0, 50, 0, 14),
+                    Position = UDim2.new(1, -60, 0, 4),
+                    Size = UDim2.new(0, 46, 0, 16),
                     Font = Enum.Font.GothamMedium,
                     Text = tostring(value) .. suffix,
                     TextColor3 = Color3.fromRGB(255, 255, 255),
-                    TextSize = 11,
-                    TextXAlignment = Enum.TextXAlignment.Center,
-                    ClearTextOnFocus = true,
-                    ZIndex = 11,
+                    TextSize = 10,
+                    ClearTextOnFocus = false,
                 })
-                BindToTheme(sliderValueBox, "BackgroundColor3", "BackgroundSecondary")
                 
                 Create("UIStroke", {
-                    Parent = sliderValueBox,
+                    Parent = valueBox,
                     Color = FSlib.Theme.Border,
                     Thickness = 1,
                 })
                 
-                local sliderBg = Create("Frame", {
-                    Name = "Background",
+                local sliderContainer = Create("Frame", {
+                    Name = "Container",
                     Parent = sliderFrame,
-                    BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
+                    BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 0, 0, 20),
-                    Size = UDim2.new(1, 0, 0, 8),
-                    ZIndex = 11,
+                    Position = UDim2.new(0, 14, 0, 24),
+                    Size = UDim2.new(1, -28, 0, 8),
                 })
-                BindToTheme(sliderBg, "BackgroundColor3", "BackgroundSecondary")
                 
                 Create("UIStroke", {
-                    Parent = sliderBg,
+                    Parent = sliderContainer,
                     Color = FSlib.Theme.Border,
                     Thickness = 1,
                 })
                 
                 local sliderFill = Create("Frame", {
                     Name = "Fill",
-                    Parent = sliderBg,
+                    Parent = sliderContainer,
                     BackgroundColor3 = FSlib.Theme.Primary,
                     BorderSizePixel = 0,
                     Size = UDim2.new((value - min) / (max - min), 0, 1, 0),
-                    ZIndex = 12,
                 })
-                BindToTheme(sliderFill, "BackgroundColor3", "Primary")
+                BindTheme(sliderFill, "BackgroundColor3", "Primary")
+                
+                local sliderHead = Create("Frame", {
+                    Name = "Head",
+                    Parent = sliderFill,
+                    BackgroundColor3 = FSlib.Theme.Text,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(1, -2, 0.5, -5),
+                    Size = UDim2.new(0, 4, 0, 10),
+                    AnchorPoint = Vector2.new(0, 0),
+                })
                 
                 local sliderButton = Create("TextButton", {
                     Name = "Button",
-                    Parent = sliderBg,
+                    Parent = sliderContainer,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 1, 0),
                     Text = "",
-                    ZIndex = 13,
                 })
                 
-                local dragging = false
-                
-                local function updateSliderVisual()
-                    sliderFill.Size = UDim2.new((value - min) / (max - min), 0, 1, 0)
-                    sliderValueBox.Text = tostring(value) .. suffix
+                local function updateSlider(newValue)
+                    newValue = math.clamp(newValue, min, max)
+                    newValue = math.floor(newValue / increment + 0.5) * increment
                     
+                    value = newValue
                     if flag then
                         FSlib.Flags[flag] = value
                     end
+                    
+                    local percent = (value - min) / (max - min)
+                    sliderFill.Size = UDim2.new(percent, 0, 1, 0)
+                    valueBox.Text = tostring(value) .. suffix
+                    
                     callback(value)
                 end
                 
-                local function updateSliderFromInput(input)
-                    local relativeX = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
-                    local rawValue = min + (max - min) * relativeX
-                    value = math.floor(rawValue / increment + 0.5) * increment
-                    value = math.clamp(value, min, max)
-                    updateSliderVisual()
-                end
+                local sliding = false
                 
-                sliderButton.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        dragging = true
-                        updateSliderFromInput(input)
-                    end
+                sliderButton.MouseButton1Down:Connect(function()
+                    sliding = true
                 end)
                 
-                sliderButton.InputEnded:Connect(function(input)
+                UserInputService.InputEnded:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        dragging = false
+                        sliding = false
                     end
                 end)
                 
                 UserInputService.InputChanged:Connect(function(input)
-                    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-                        updateSliderFromInput(input)
+                    if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then
+                        local percent = math.clamp(
+                            (input.Position.X - sliderContainer.AbsolutePosition.X) / sliderContainer.AbsoluteSize.X,
+                            0, 1
+                        )
+                        local newValue = min + (max - min) * percent
+                        updateSlider(newValue)
                     end
                 end)
                 
-                sliderValueBox.FocusLost:Connect(function(enterPressed)
-                    local inputText = sliderValueBox.Text:gsub(suffix, ""):gsub("%s+", "")
-                    local inputNum = tonumber(inputText)
-                    
-                    if inputNum then
-                        inputNum = math.floor(inputNum / increment + 0.5) * increment
-                        value = math.clamp(inputNum, min, max)
+                valueBox.FocusLost:Connect(function(enterPressed)
+                    local input = valueBox.Text:gsub(suffix, "")
+                    local newValue = tonumber(input)
+                    if newValue then
+                        updateSlider(newValue)
+                    else
+                        valueBox.Text = tostring(value) .. suffix
                     end
-                    
-                    updateSliderVisual()
                 end)
                 
-                return {
-                    Set = function(_, newValue)
-                        value = math.clamp(newValue, min, max)
-                        updateSliderVisual()
-                    end,
-                    Get = function()
-                        return value
-                    end,
-                }
+                local SliderAPI = {}
+                
+                function SliderAPI:Set(newValue)
+                    updateSlider(newValue)
+                end
+                
+                function SliderAPI:Get()
+                    return value
+                end
+                
+                return SliderAPI
             end
             
             -- Dropdown
             function Section:CreateDropdown(dropdownOptions)
-                dropdownOptions = dropdownOptions or {}
                 local name = dropdownOptions.Name or "Dropdown"
-                local items = dropdownOptions.Items or {}
-                local default = dropdownOptions.Default
+                local options = dropdownOptions.Options or {}
+                local default = dropdownOptions.Default or options[1]
                 local flag = dropdownOptions.Flag
                 local callback = dropdownOptions.Callback or function() end
                 
                 self.ElementCount = self.ElementCount + 1
-                local value = default or (items[1] or "")
+                local value = default
                 local isOpen = false
                 
                 if flag then
@@ -805,12 +1044,11 @@ function FSlib:CreateWindow(options)
                 end
                 
                 local dropdownFrame = Create("Frame", {
-                    Name = "Dropdown_" .. name,
-                    Parent = self.Content,
+                    Name = name,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 42),
+                    Size = UDim2.new(1, 0, 0, 40),
                     LayoutOrder = self.ElementCount,
-                    ClipsDescendants = false,
                     ZIndex = 10,
                 })
                 
@@ -818,32 +1056,28 @@ function FSlib:CreateWindow(options)
                     Name = "Label",
                     Parent = dropdownFrame,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 14),
-                    Font = Enum.Font.GothamMedium,
+                    Position = UDim2.new(0, 14, 0, 4),
+                    Size = UDim2.new(1, -28, 0, 14),
+                    Font = Enum.Font.Gotham,
                     Text = name,
-                    TextColor3 = FSlib.Theme.Text,
-                    TextSize = 12,
+                    TextColor3 = FSlib.Theme.TextDark,
+                    TextSize = 11,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    ZIndex = 11,
+                    ZIndex = 10,
                 })
-                BindToTheme(dropdownLabel, "TextColor3", "Text")
+                BindTheme(dropdownLabel, "TextColor3", "TextDark")
                 
                 local dropdownButton = Create("TextButton", {
                     Name = "Button",
                     Parent = dropdownFrame,
-                    BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
+                    BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 0, 0, 16),
-                    Size = UDim2.new(1, 0, 0, 24),
-                    Font = Enum.Font.GothamMedium,
-                    Text = "  " .. tostring(value),
-                    TextColor3 = FSlib.Theme.Text,
-                    TextSize = 12,
-                    TextXAlignment = Enum.TextXAlignment.Left,
-                    ZIndex = 11,
+                    Position = UDim2.new(0, 14, 0, 20),
+                    Size = UDim2.new(1, -28, 0, 22),
+                    Font = Enum.Font.Gotham,
+                    Text = "",
+                    ZIndex = 10,
                 })
-                BindToTheme(dropdownButton, "BackgroundColor3", "BackgroundSecondary")
-                BindToTheme(dropdownButton, "TextColor3", "Text")
                 
                 Create("UIStroke", {
                     Parent = dropdownButton,
@@ -851,45 +1085,57 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                local dropdownArrow = Create("TextLabel", {
+                local selectedLabel = Create("TextLabel", {
+                    Name = "Selected",
+                    Parent = dropdownButton,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 8, 0, 0),
+                    Size = UDim2.new(1, -24, 1, 0),
+                    Font = Enum.Font.Gotham,
+                    Text = value or "Select...",
+                    TextColor3 = FSlib.Theme.Text,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 10,
+                })
+                
+                local arrow = Create("TextLabel", {
                     Name = "Arrow",
                     Parent = dropdownButton,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(1, -20, 0, 0),
-                    Size = UDim2.new(0, 20, 1, 0),
-                    Font = Enum.Font.GothamMedium,
+                    Position = UDim2.new(1, -18, 0, 0),
+                    Size = UDim2.new(0, 12, 1, 0),
+                    Font = Enum.Font.GothamBold,
                     Text = "▼",
-                    TextColor3 = FSlib.Theme.TextDark,
-                    TextSize = 10,
-                    ZIndex = 12,
+                    TextColor3 = FSlib.Theme.TextDisabled,
+                    TextSize = 8,
+                    ZIndex = 10,
                 })
-                BindToTheme(dropdownArrow, "TextColor3", "TextDark")
                 
-                -- Overlay (点击外部关闭)
+                -- Dropdown list (in ScreenGui for proper layering)
                 local dropdownOverlay = Create("TextButton", {
-                    Name = "Overlay_" .. name,
+                    Name = name .. "_Overlay",
                     Parent = screenGui,
+                    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 1, 0),
                     Text = "",
+                    ZIndex = 99,
                     Visible = false,
-                    ZIndex = 998,
+                    Active = true,
                 })
                 
-                -- Dropdown List
                 local dropdownList = Create("Frame", {
-                    Name = "List_" .. name,
+                    Name = name .. "_List",
                     Parent = screenGui,
                     BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 0, 0, 0),
-                    Size = UDim2.new(0, 0, 0, 0),
-                    ClipsDescendants = true,
+                    Size = UDim2.new(0, 200, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
                     Visible = false,
-                    ZIndex = 999,
-                    Active = true,
+                    ZIndex = 100,
+                    ClipsDescendants = true,
                 })
-                BindToTheme(dropdownList, "BackgroundColor3", "BackgroundSecondary")
                 
                 Create("UIStroke", {
                     Parent = dropdownList,
@@ -897,120 +1143,143 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                local listScroll = Create("ScrollingFrame", {
-                    Name = "Scroll",
+                local listContent = Create("Frame", {
+                    Name = "Content",
                     Parent = dropdownList,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 1, 0),
-                    CanvasSize = UDim2.new(0, 0, 0, 0),
-                    ScrollBarThickness = 2,
-                    ScrollBarImageColor3 = FSlib.Theme.Primary,
-                    ZIndex = 1000,
-                    AutomaticCanvasSize = Enum.AutomaticSize.Y,
+                    Size = UDim2.new(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
                 })
                 
                 Create("UIListLayout", {
-                    Parent = listScroll,
+                    Parent = listContent,
                     SortOrder = Enum.SortOrder.LayoutOrder,
                 })
                 
-                local function updateDropdownPosition()
-                    local absPos = dropdownButton.AbsolutePosition
-                    local absSize = dropdownButton.AbsoluteSize
-                    dropdownList.Position = UDim2.new(0, absPos.X, 0, absPos.Y + absSize.Y + 2)
-                    dropdownList.Size = UDim2.new(0, absSize.X, 0, math.min(#items * 24, 150))
-                end
-                
-                local function closeDropdown()
-                    isOpen = false
-                    dropdownList.Visible = false
-                    dropdownOverlay.Visible = false
-                    dropdownArrow.Text = "▼"
-                end
-                
-                local function createItems()
-                    for _, child in ipairs(listScroll:GetChildren()) do
+                local function createOptions()
+                    for _, child in ipairs(listContent:GetChildren()) do
                         if child:IsA("TextButton") then
                             child:Destroy()
                         end
                     end
                     
-                    for i, item in ipairs(items) do
-                        local itemButton = Create("TextButton", {
-                            Name = "Item_" .. tostring(item),
-                            Parent = listScroll,
+                    for i, option in ipairs(options) do
+                        local optionButton = Create("TextButton", {
+                            Name = option,
+                            Parent = listContent,
                             BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                             BackgroundTransparency = 0,
-                            BorderSizePixel = 0,
-                            Size = UDim2.new(1, 0, 0, 24),
-                            Font = Enum.Font.GothamMedium,
-                            Text = "  " .. tostring(item),
-                            TextColor3 = FSlib.Theme.Text,
-                            TextSize = 12,
-                            TextXAlignment = Enum.TextXAlignment.Left,
+                            Size = UDim2.new(1, 0, 0, 26),
+                            Font = Enum.Font.Gotham,
+                            Text = "",
                             LayoutOrder = i,
-                            ZIndex = 1001,
+                            ZIndex = 101,
+                            AutoButtonColor = false,
                         })
                         
-                        itemButton.MouseEnter:Connect(function()
-                            Tween(itemButton, { BackgroundColor3 = FSlib.Theme.Primary }, 0.1)
-                        end)
-                        itemButton.MouseLeave:Connect(function()
-                            Tween(itemButton, { BackgroundColor3 = FSlib.Theme.BackgroundSecondary }, 0.1)
+                        -- Selected indicator
+                        local indicator = Create("Frame", {
+                            Name = "Indicator",
+                            Parent = optionButton,
+                            BackgroundColor3 = FSlib.Theme.Primary,
+                            BorderSizePixel = 0,
+                            Position = UDim2.new(0, 0, 0, 0),
+                            Size = UDim2.new(0, 3, 1, 0),
+                            Visible = option == value,
+                            ZIndex = 102,
+                        })
+                        BindTheme(indicator, "BackgroundColor3", "Primary")
+                        
+                        local optionLabel = Create("TextLabel", {
+                            Name = "Label",
+                            Parent = optionButton,
+                            BackgroundTransparency = 1,
+                            Position = UDim2.new(0, 12, 0, 0),
+                            Size = UDim2.new(1, -12, 1, 0),
+                            Font = Enum.Font.Gotham,
+                            Text = option,
+                            TextColor3 = option == value and FSlib.Theme.Text or FSlib.Theme.TextDark,
+                            TextSize = 11,
+                            TextXAlignment = Enum.TextXAlignment.Left,
+                            ZIndex = 102,
+                        })
+                        
+                        optionButton.MouseEnter:Connect(function()
+                            optionButton.BackgroundColor3 = FSlib.Theme.BackgroundTertiary
                         end)
                         
-                        itemButton.MouseButton1Click:Connect(function()
-                            value = item
-                            dropdownButton.Text = "  " .. tostring(value)
-                            closeDropdown()
-                            
+                        optionButton.MouseLeave:Connect(function()
+                            optionButton.BackgroundColor3 = FSlib.Theme.BackgroundSecondary
+                        end)
+                        
+                        optionButton.MouseButton1Click:Connect(function()
+                            value = option
                             if flag then
                                 FSlib.Flags[flag] = value
                             end
+                            
+                            selectedLabel.Text = value
+                            isOpen = false
+                            dropdownList.Visible = false
+                            dropdownOverlay.Visible = false
+                            
+                            createOptions()
                             callback(value)
                         end)
                     end
                 end
                 
-                createItems()
+                createOptions()
                 
-                dropdownOverlay.MouseButton1Click:Connect(function()
-                    closeDropdown()
-                end)
-                
-                dropdownButton.MouseButton1Click:Connect(function()
+                local function toggleDropdown()
                     isOpen = not isOpen
                     dropdownList.Visible = isOpen
                     dropdownOverlay.Visible = isOpen
-                    dropdownArrow.Text = isOpen and "▲" or "▼"
                     
                     if isOpen then
-                        updateDropdownPosition()
+                        local buttonPos = dropdownButton.AbsolutePosition
+                        local buttonSize = dropdownButton.AbsoluteSize
+                        dropdownList.Position = UDim2.new(0, buttonPos.X, 0, buttonPos.Y + buttonSize.Y + 2)
+                        dropdownList.Size = UDim2.new(0, buttonSize.X, 0, 0)
                     end
+                end
+                
+                dropdownButton.MouseButton1Click:Connect(toggleDropdown)
+                
+                dropdownOverlay.MouseButton1Click:Connect(function()
+                    isOpen = false
+                    dropdownList.Visible = false
+                    dropdownOverlay.Visible = false
                 end)
                 
-                return {
-                    Set = function(_, newValue)
+                local DropdownAPI = {}
+                
+                function DropdownAPI:Set(newValue)
+                    if table.find(options, newValue) then
                         value = newValue
-                        dropdownButton.Text = "  " .. tostring(value)
                         if flag then
                             FSlib.Flags[flag] = value
                         end
+                        selectedLabel.Text = value
+                        createOptions()
                         callback(value)
-                    end,
-                    Get = function()
-                        return value
-                    end,
-                    SetOptions = function(_, newItems)
-                        items = newItems
-                        createItems()
-                    end,
-                }
+                    end
+                end
+                
+                function DropdownAPI:SetOptions(newOptions)
+                    options = newOptions
+                    createOptions()
+                end
+                
+                function DropdownAPI:Get()
+                    return value
+                end
+                
+                return DropdownAPI
             end
             
             -- Keybind
             function Section:CreateKeybind(keybindOptions)
-                keybindOptions = keybindOptions or {}
                 local name = keybindOptions.Name or "Keybind"
                 local default = keybindOptions.Default or Enum.KeyCode.Unknown
                 local flag = keybindOptions.Flag
@@ -1025,43 +1294,40 @@ function FSlib:CreateWindow(options)
                 end
                 
                 local keybindFrame = Create("Frame", {
-                    Name = "Keybind_" .. name,
-                    Parent = self.Content,
+                    Name = name,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 20),
+                    Size = UDim2.new(1, 0, 0, 32),
                     LayoutOrder = self.ElementCount,
-                    ZIndex = 10,
                 })
                 
                 local keybindLabel = Create("TextLabel", {
                     Name = "Label",
                     Parent = keybindFrame,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, -60, 1, 0),
-                    Font = Enum.Font.GothamMedium,
+                    Position = UDim2.new(0, 14, 0, 0),
+                    Size = UDim2.new(1, -80, 1, 0),
+                    Font = Enum.Font.Gotham,
                     Text = name,
-                    TextColor3 = FSlib.Theme.Text,
-                    TextSize = 12,
+                    TextColor3 = FSlib.Theme.TextDark,
+                    TextSize = 11,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    ZIndex = 11,
                 })
-                BindToTheme(keybindLabel, "TextColor3", "Text")
+                BindTheme(keybindLabel, "TextColor3", "TextDark")
                 
                 local keybindButton = Create("TextButton", {
                     Name = "Button",
                     Parent = keybindFrame,
-                    BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
+                    BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(1, -55, 0.5, -10),
-                    Size = UDim2.new(0, 55, 0, 20),
+                    Position = UDim2.new(1, -66, 0.5, -10),
+                    Size = UDim2.new(0, 52, 0, 20),
                     Font = Enum.Font.GothamMedium,
                     Text = value.Name or "None",
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
-                    ZIndex = 11,
+                    TextSize = 10,
+                    AutoButtonColor = false,
                 })
-                BindToTheme(keybindButton, "BackgroundColor3", "BackgroundSecondary")
-                BindToTheme(keybindButton, "TextColor3", "Text")
                 
                 Create("UIStroke", {
                     Parent = keybindButton,
@@ -1072,95 +1338,94 @@ function FSlib:CreateWindow(options)
                 keybindButton.MouseButton1Click:Connect(function()
                     listening = true
                     keybindButton.Text = "..."
-                    Tween(keybindButton, { BackgroundColor3 = FSlib.Theme.Primary }, 0.15)
                 end)
                 
                 UserInputService.InputBegan:Connect(function(input, processed)
                     if listening then
                         if input.UserInputType == Enum.UserInputType.Keyboard then
                             value = input.KeyCode
-                            keybindButton.Text = value.Name
-                            listening = false
-                            Tween(keybindButton, { BackgroundColor3 = FSlib.Theme.BackgroundSecondary }, 0.15)
-                            
                             if flag then
                                 FSlib.Flags[flag] = value
                             end
-                        elseif input.UserInputType == Enum.UserInputType.MouseButton1 or 
-                               input.UserInputType == Enum.UserInputType.MouseButton2 then
+                            keybindButton.Text = value.Name
                             listening = false
-                            keybindButton.Text = value.Name or "None"
-                            Tween(keybindButton, { BackgroundColor3 = FSlib.Theme.BackgroundSecondary }, 0.15)
+                        elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+                            if not keybindButton:IsDescendantOf(input.Target) then
+                                listening = false
+                                keybindButton.Text = value.Name or "None"
+                            end
                         end
-                    elseif not processed and input.KeyCode == value then
-                        callback(value)
+                    else
+                        if not processed and input.KeyCode == value then
+                            callback(value)
+                        end
                     end
                 end)
                 
-                return {
-                    Set = function(_, newValue)
-                        value = newValue
-                        keybindButton.Text = value.Name or "None"
-                        if flag then
-                            FSlib.Flags[flag] = value
-                        end
-                    end,
-                    Get = function()
-                        return value
-                    end,
-                }
+                local KeybindAPI = {}
+                
+                function KeybindAPI:Set(newValue)
+                    value = newValue
+                    if flag then
+                        FSlib.Flags[flag] = value
+                    end
+                    keybindButton.Text = value.Name or "None"
+                end
+                
+                function KeybindAPI:Get()
+                    return value
+                end
+                
+                return KeybindAPI
             end
             
             -- ColorPicker
-            function Section:CreateColorPicker(colorPickerOptions)
-                colorPickerOptions = colorPickerOptions or {}
-                local name = colorPickerOptions.Name or "Color"
-                local default = colorPickerOptions.Default or Color3.fromRGB(255, 0, 0)
-                local flag = colorPickerOptions.Flag
-                local callback = colorPickerOptions.Callback or function() end
+            function Section:CreateColorPicker(colorOptions)
+                local name = colorOptions.Name or "Color"
+                local default = colorOptions.Default or Color3.fromRGB(255, 255, 255)
+                local flag = colorOptions.Flag
+                local callback = colorOptions.Callback or function() end
                 
                 self.ElementCount = self.ElementCount + 1
                 local value = default
+                local h, s, v = Color3.toHSV(value)
                 local isOpen = false
-                local hue, sat, val = Color3.toHSV(default)
                 
                 if flag then
                     FSlib.Flags[flag] = value
                 end
                 
                 local colorFrame = Create("Frame", {
-                    Name = "ColorPicker_" .. name,
-                    Parent = self.Content,
+                    Name = name,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 20),
+                    Size = UDim2.new(1, 0, 0, 32),
                     LayoutOrder = self.ElementCount,
-                    ClipsDescendants = false,
-                    ZIndex = 10,
                 })
                 
                 local colorLabel = Create("TextLabel", {
                     Name = "Label",
                     Parent = colorFrame,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, -40, 1, 0),
-                    Font = Enum.Font.GothamMedium,
+                    Position = UDim2.new(0, 14, 0, 0),
+                    Size = UDim2.new(1, -60, 1, 0),
+                    Font = Enum.Font.Gotham,
                     Text = name,
-                    TextColor3 = FSlib.Theme.Text,
-                    TextSize = 12,
+                    TextColor3 = FSlib.Theme.TextDark,
+                    TextSize = 11,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    ZIndex = 11,
                 })
-                BindToTheme(colorLabel, "TextColor3", "Text")
+                BindTheme(colorLabel, "TextColor3", "TextDark")
                 
                 local colorPreview = Create("TextButton", {
                     Name = "Preview",
                     Parent = colorFrame,
                     BackgroundColor3 = value,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(1, -35, 0.5, -8),
-                    Size = UDim2.new(0, 35, 0, 16),
+                    Position = UDim2.new(1, -46, 0.5, -8),
+                    Size = UDim2.new(0, 32, 0, 16),
                     Text = "",
-                    ZIndex = 11,
+                    AutoButtonColor = false,
                 })
                 
                 Create("UIStroke", {
@@ -1169,19 +1434,17 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                -- Picker Panel (在 ScreenGui 上)
+                -- Color picker panel
                 local pickerPanel = Create("Frame", {
-                    Name = "ColorPanel_" .. name,
+                    Name = name .. "_Panel",
                     Parent = screenGui,
-                    BackgroundColor3 = FSlib.Theme.Background,
+                    BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 0, 0, 0),
-                    Size = UDim2.new(0, 200, 0, 170),
+                    Size = UDim2.new(0, 220, 0, 200),
                     Visible = false,
-                    ZIndex = 5000,
+                    ZIndex = 200,
                     Active = true,
                 })
-                BindToTheme(pickerPanel, "BackgroundColor3", "Background")
                 
                 Create("UIStroke", {
                     Parent = pickerPanel,
@@ -1189,122 +1452,126 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                local function updatePickerPosition()
-                    local absPos = colorPreview.AbsolutePosition
-                    local absSize = colorPreview.AbsoluteSize
-                    pickerPanel.Position = UDim2.new(0, absPos.X - 165, 0, absPos.Y + absSize.Y + 4)
-                end
+                -- Panel header
+                local panelHeader = Create("Frame", {
+                    Name = "Header",
+                    Parent = pickerPanel,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 28),
+                    ZIndex = 201,
+                })
                 
-                -- SV Picker (色相饱和度)
+                Create("TextLabel", {
+                    Name = "Title",
+                    Parent = panelHeader,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 10, 0, 0),
+                    Size = UDim2.new(1, -10, 1, 0),
+                    Font = Enum.Font.GothamBold,
+                    Text = name,
+                    TextColor3 = FSlib.Theme.Text,
+                    TextSize = 11,
+                    TextXAlignment = Enum.TextXAlignment.Left,
+                    ZIndex = 201,
+                })
+                
+                Create("Frame", {
+                    Name = "Border",
+                    Parent = panelHeader,
+                    BackgroundColor3 = FSlib.Theme.Border,
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 0, 1, -1),
+                    Size = UDim2.new(1, 0, 0, 1),
+                    ZIndex = 201,
+                })
+                
+                -- SV Picker (Saturation/Value)
                 local svPicker = Create("Frame", {
                     Name = "SVPicker",
                     Parent = pickerPanel,
-                    BackgroundColor3 = Color3.fromHSV(hue, 1, 1),
+                    BackgroundColor3 = Color3.fromHSV(h, 1, 1),
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 8, 0, 8),
-                    Size = UDim2.new(0, 150, 0, 100),
-                    ZIndex = 5001,
-                    Active = true,
+                    Position = UDim2.new(0, 10, 0, 38),
+                    Size = UDim2.new(0, 160, 0, 100),
+                    ZIndex = 201,
                 })
                 
-                -- 白色渐变 (左到右)
+                Create("UIStroke", {
+                    Parent = svPicker,
+                    Color = FSlib.Theme.Border,
+                    Thickness = 1,
+                })
+                
+                -- White gradient (left to right)
                 local satGradient = Create("Frame", {
                     Name = "SatGradient",
                     Parent = svPicker,
-                    BackgroundColor3 = Color3.new(1, 1, 1),
-                    BorderSizePixel = 0,
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                     Size = UDim2.new(1, 0, 1, 0),
-                    ZIndex = 5002,
+                    ZIndex = 202,
                 })
                 
                 Create("UIGradient", {
                     Parent = satGradient,
-                    Color = ColorSequence.new({
-                        ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-                        ColorSequenceKeypoint.new(1, Color3.new(1, 1, 1))
-                    }),
                     Transparency = NumberSequence.new({
                         NumberSequenceKeypoint.new(0, 0),
-                        NumberSequenceKeypoint.new(1, 1)
+                        NumberSequenceKeypoint.new(1, 1),
                     }),
                 })
                 
-                -- 黑色渐变 (上到下)
-                local valOverlay = Create("Frame", {
-                    Name = "ValOverlay",
+                -- Black gradient (top to bottom)
+                local valGradient = Create("Frame", {
+                    Name = "ValGradient",
                     Parent = svPicker,
-                    BackgroundColor3 = Color3.new(0, 0, 0),
-                    BackgroundTransparency = 0,
-                    BorderSizePixel = 0,
+                    BackgroundColor3 = Color3.fromRGB(0, 0, 0),
                     Size = UDim2.new(1, 0, 1, 0),
-                    ZIndex = 5003,
+                    ZIndex = 203,
                 })
                 
                 Create("UIGradient", {
-                    Parent = valOverlay,
+                    Parent = valGradient,
+                    Rotation = 90,
                     Transparency = NumberSequence.new({
                         NumberSequenceKeypoint.new(0, 1),
-                        NumberSequenceKeypoint.new(1, 0)
+                        NumberSequenceKeypoint.new(1, 0),
                     }),
-                    Rotation = 90,
                 })
                 
-                -- SV Cursor
                 local svCursor = Create("Frame", {
                     Name = "Cursor",
                     Parent = svPicker,
-                    BackgroundColor3 = Color3.new(1, 1, 1),
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                     BorderSizePixel = 0,
-                    Position = UDim2.new(sat, -5, 1 - val, -5),
+                    Position = UDim2.new(s, -5, 1 - v, -5),
                     Size = UDim2.new(0, 10, 0, 10),
-                    ZIndex = 5004,
-                })
-                
-                Create("UICorner", {
-                    Parent = svCursor,
-                    CornerRadius = UDim.new(1, 0),
+                    ZIndex = 205,
                 })
                 
                 Create("UIStroke", {
                     Parent = svCursor,
-                    Color = Color3.new(0, 0, 0),
-                    Thickness = 2,
+                    Color = Color3.fromRGB(0, 0, 0),
+                    Thickness = 1,
                 })
                 
-                -- SV Click Area
-                local svClickArea = Create("TextButton", {
-                    Name = "ClickArea",
+                local svButton = Create("TextButton", {
+                    Name = "Button",
                     Parent = svPicker,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 1, 0),
                     Text = "",
-                    ZIndex = 5005,
-                })
-                
-                -- Hue Picker
-                local huePicker = Create("Frame", {
-                    Name = "HuePicker",
-                    Parent = pickerPanel,
-                    BackgroundColor3 = Color3.new(1, 1, 1),
-                    BorderSizePixel = 0,
-                    Position = UDim2.new(0, 166, 0, 8),
-                    Size = UDim2.new(0, 18, 0, 100),
-                    ZIndex = 5001,
+                    ZIndex = 206,
                     Active = true,
                 })
                 
-                Create("UIGradient", {
-                    Parent = huePicker,
-                    Color = ColorSequence.new({
-                        ColorSequenceKeypoint.new(0, Color3.fromHSV(0, 1, 1)),
-                        ColorSequenceKeypoint.new(0.167, Color3.fromHSV(0.167, 1, 1)),
-                        ColorSequenceKeypoint.new(0.333, Color3.fromHSV(0.333, 1, 1)),
-                        ColorSequenceKeypoint.new(0.5, Color3.fromHSV(0.5, 1, 1)),
-                        ColorSequenceKeypoint.new(0.667, Color3.fromHSV(0.667, 1, 1)),
-                        ColorSequenceKeypoint.new(0.833, Color3.fromHSV(0.833, 1, 1)),
-                        ColorSequenceKeypoint.new(1, Color3.fromHSV(1, 1, 1)),
-                    }),
-                    Rotation = 90,
+                -- Hue slider
+                local huePicker = Create("Frame", {
+                    Name = "HuePicker",
+                    Parent = pickerPanel,
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+                    BorderSizePixel = 0,
+                    Position = UDim2.new(0, 180, 0, 38),
+                    Size = UDim2.new(0, 20, 0, 100),
+                    ZIndex = 201,
                 })
                 
                 Create("UIStroke", {
@@ -1313,248 +1580,209 @@ function FSlib:CreateWindow(options)
                     Thickness = 1,
                 })
                 
-                -- Hue Cursor
+                Create("UIGradient", {
+                    Parent = huePicker,
+                    Rotation = 90,
+                    Color = ColorSequence.new({
+                        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
+                        ColorSequenceKeypoint.new(0.167, Color3.fromRGB(255, 255, 0)),
+                        ColorSequenceKeypoint.new(0.333, Color3.fromRGB(0, 255, 0)),
+                        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(0, 255, 255)),
+                        ColorSequenceKeypoint.new(0.667, Color3.fromRGB(0, 0, 255)),
+                        ColorSequenceKeypoint.new(0.833, Color3.fromRGB(255, 0, 255)),
+                        ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 0, 0)),
+                    }),
+                })
+                
                 local hueCursor = Create("Frame", {
                     Name = "Cursor",
                     Parent = huePicker,
-                    BackgroundTransparency = 1,
+                    BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, -2, hue, -2),
+                    Position = UDim2.new(0, -2, h, -2),
                     Size = UDim2.new(1, 4, 0, 4),
-                    ZIndex = 5002,
+                    ZIndex = 202,
                 })
                 
                 Create("UIStroke", {
                     Parent = hueCursor,
-                    Color = Color3.new(1, 1, 1),
-                    Thickness = 2,
+                    Color = Color3.fromRGB(0, 0, 0),
+                    Thickness = 1,
                 })
                 
-                -- Hue Click Area
-                local hueClickArea = Create("TextButton", {
-                    Name = "ClickArea",
+                local hueButton = Create("TextButton", {
+                    Name = "Button",
                     Parent = huePicker,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 1, 0),
                     Text = "",
-                    ZIndex = 5003,
+                    ZIndex = 203,
+                    Active = true,
                 })
                 
-                -- Hex Input
-                local hexInput = Create("TextBox", {
-                    Name = "HexInput",
+                -- Hex input
+                local hexLabel = Create("TextLabel", {
+                    Name = "HexLabel",
                     Parent = pickerPanel,
-                    BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
+                    BackgroundTransparency = 1,
+                    Position = UDim2.new(0, 10, 0, 148),
+                    Size = UDim2.new(0, 30, 0, 20),
+                    Font = Enum.Font.GothamMedium,
+                    Text = "HEX",
+                    TextColor3 = FSlib.Theme.TextDark,
+                    TextSize = 10,
+                    ZIndex = 201,
+                })
+                
+                local hexBox = Create("TextBox", {
+                    Name = "HexBox",
+                    Parent = pickerPanel,
+                    BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 8, 0, 116),
-                    Size = UDim2.new(0, 80, 0, 22),
-                    Font = Enum.Font.Code,
-                    Text = "#" .. string.format("%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255)),
-                    TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
-                    ZIndex = 5001,
+                    Position = UDim2.new(0, 45, 0, 148),
+                    Size = UDim2.new(0, 70, 0, 20),
+                    Font = Enum.Font.GothamMedium,
+                    Text = string.format("#%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255)),
+                    TextColor3 = Color3.fromRGB(255, 255, 255),
+                    TextSize = 10,
+                    ZIndex = 201,
                     ClearTextOnFocus = false,
                 })
-                BindToTheme(hexInput, "BackgroundColor3", "BackgroundSecondary")
-                BindToTheme(hexInput, "TextColor3", "Text")
                 
                 Create("UIStroke", {
-                    Parent = hexInput,
+                    Parent = hexBox,
                     Color = FSlib.Theme.Border,
                     Thickness = 1,
                 })
                 
-                -- Apply Button
-                local applyButton = Create("TextButton", {
+                -- Apply button
+                local applyBtn = Create("TextButton", {
                     Name = "Apply",
                     Parent = pickerPanel,
                     BackgroundColor3 = FSlib.Theme.Primary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 96, 0, 116),
-                    Size = UDim2.new(0, 88, 0, 22),
+                    Position = UDim2.new(0, 130, 0, 148),
+                    Size = UDim2.new(0, 70, 0, 20),
                     Font = Enum.Font.GothamBold,
                     Text = "APPLY",
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 11,
-                    ZIndex = 5001,
+                    TextSize = 10,
+                    ZIndex = 201,
+                    AutoButtonColor = false,
                 })
-                BindToTheme(applyButton, "BackgroundColor3", "Primary")
-                BindToTheme(applyButton, "TextColor3", "Text")
-                
-                -- Presets
-                local presets = {
-                    Color3.fromRGB(255, 0, 0),
-                    Color3.fromRGB(255, 128, 0),
-                    Color3.fromRGB(255, 255, 0),
-                    Color3.fromRGB(0, 255, 0),
-                    Color3.fromRGB(0, 255, 255),
-                    Color3.fromRGB(0, 128, 255),
-                    Color3.fromRGB(0, 0, 255),
-                    Color3.fromRGB(128, 0, 255),
-                    Color3.fromRGB(255, 0, 255),
-                    Color3.fromRGB(255, 255, 255),
-                    Color3.fromRGB(128, 128, 128),
-                    Color3.fromRGB(0, 0, 0),
-                }
-                
-                for i, presetColor in ipairs(presets) do
-                    local presetButton = Create("TextButton", {
-                        Name = "Preset" .. i,
-                        Parent = pickerPanel,
-                        BackgroundColor3 = presetColor,
-                        BorderSizePixel = 0,
-                        Position = UDim2.new(0, 8 + ((i - 1) % 12) * 15, 0, 146),
-                        Size = UDim2.new(0, 13, 0, 16),
-                        Text = "",
-                        ZIndex = 5001,
-                    })
-                    
-                    Create("UIStroke", {
-                        Parent = presetButton,
-                        Color = FSlib.Theme.Border,
-                        Thickness = 1,
-                    })
-                    
-                    presetButton.MouseButton1Click:Connect(function()
-                        value = presetColor
-                        hue, sat, val = Color3.toHSV(presetColor)
-                        colorPreview.BackgroundColor3 = value
-                        svPicker.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-                        svCursor.Position = UDim2.new(sat, -5, 1 - val, -5)
-                        hueCursor.Position = UDim2.new(0, -2, hue, -2)
-                        hexInput.Text = "#" .. string.format("%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255))
-                    end)
-                end
+                BindTheme(applyBtn, "BackgroundColor3", "Primary")
                 
                 local function updateColor()
-                    value = Color3.fromHSV(hue, sat, val)
+                    value = Color3.fromHSV(h, s, v)
                     colorPreview.BackgroundColor3 = value
-                    svPicker.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-                    hexInput.Text = "#" .. string.format("%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255))
+                    svPicker.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
+                    svCursor.Position = UDim2.new(s, -5, 1 - v, -5)
+                    hueCursor.Position = UDim2.new(0, -2, h, -2)
+                    hexBox.Text = string.format("#%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255))
+                    
+                    if flag then
+                        FSlib.Flags[flag] = value
+                    end
                 end
                 
+                -- SV picking
                 local svDragging = false
-                local hueDragging = false
                 
-                svClickArea.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        svDragging = true
-                        local relX = math.clamp((input.Position.X - svPicker.AbsolutePosition.X) / svPicker.AbsoluteSize.X, 0, 1)
-                        local relY = math.clamp((input.Position.Y - svPicker.AbsolutePosition.Y) / svPicker.AbsoluteSize.Y, 0, 1)
-                        sat = relX
-                        val = 1 - relY
-                        svCursor.Position = UDim2.new(sat, -5, 1 - val, -5)
-                        updateColor()
-                    end
+                svButton.MouseButton1Down:Connect(function()
+                    svDragging = true
                 end)
                 
-                svClickArea.InputEnded:Connect(function(input)
+                UserInputService.InputEnded:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         svDragging = false
                     end
                 end)
                 
-                hueClickArea.InputBegan:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        hueDragging = true
-                        local relY = math.clamp((input.Position.Y - huePicker.AbsolutePosition.Y) / huePicker.AbsoluteSize.Y, 0, 1)
-                        hue = relY
-                        hueCursor.Position = UDim2.new(0, -2, hue, -2)
+                UserInputService.InputChanged:Connect(function(input)
+                    if svDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                        local relX = math.clamp((input.Position.X - svPicker.AbsolutePosition.X) / svPicker.AbsoluteSize.X, 0, 1)
+                        local relY = math.clamp((input.Position.Y - svPicker.AbsolutePosition.Y) / svPicker.AbsoluteSize.Y, 0, 1)
+                        s = relX
+                        v = 1 - relY
                         updateColor()
                     end
                 end)
                 
-                hueClickArea.InputEnded:Connect(function(input)
+                -- Hue picking
+                local hueDragging = false
+                
+                hueButton.MouseButton1Down:Connect(function()
+                    hueDragging = true
+                end)
+                
+                UserInputService.InputEnded:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 then
                         hueDragging = false
                     end
                 end)
                 
                 UserInputService.InputChanged:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseMovement then
-                        if svDragging then
-                            local relX = math.clamp((input.Position.X - svPicker.AbsolutePosition.X) / svPicker.AbsoluteSize.X, 0, 1)
-                            local relY = math.clamp((input.Position.Y - svPicker.AbsolutePosition.Y) / svPicker.AbsoluteSize.Y, 0, 1)
-                            sat = relX
-                            val = 1 - relY
-                            svCursor.Position = UDim2.new(sat, -5, 1 - val, -5)
-                            updateColor()
-                        elseif hueDragging then
-                            local relY = math.clamp((input.Position.Y - huePicker.AbsolutePosition.Y) / huePicker.AbsoluteSize.Y, 0, 1)
-                            hue = relY
-                            hueCursor.Position = UDim2.new(0, -2, hue, -2)
-                            updateColor()
-                        end
+                    if hueDragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+                        local relY = math.clamp((input.Position.Y - huePicker.AbsolutePosition.Y) / huePicker.AbsoluteSize.Y, 0, 1)
+                        h = relY
+                        updateColor()
                     end
                 end)
                 
-                local function closeColorPicker()
-                    isOpen = false
-                    pickerPanel.Visible = false
-                    
-                    if flag then
-                        FSlib.Flags[flag] = value
-                    end
-                    callback(value)
-                end
-                
-                colorPreview.MouseButton1Click:Connect(function()
-                    isOpen = not isOpen
-                    pickerPanel.Visible = isOpen
-                    if isOpen then
-                        updatePickerPosition()
-                    end
-                end)
-                
-                -- 只有点击 Apply 才关闭面板
-                applyButton.MouseButton1Click:Connect(function()
-                    closeColorPicker()
-                end)
-                
-                hexInput.FocusLost:Connect(function()
-                    local hex = hexInput.Text:gsub("#", "")
+                -- Hex input
+                hexBox.FocusLost:Connect(function()
+                    local hex = hexBox.Text:gsub("#", "")
                     if #hex == 6 then
                         local r = tonumber(hex:sub(1, 2), 16)
                         local g = tonumber(hex:sub(3, 4), 16)
                         local b = tonumber(hex:sub(5, 6), 16)
                         if r and g and b then
                             value = Color3.fromRGB(r, g, b)
-                            hue, sat, val = Color3.toHSV(value)
-                            colorPreview.BackgroundColor3 = value
-                            svPicker.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-                            svCursor.Position = UDim2.new(sat, -5, 1 - val, -5)
-                            hueCursor.Position = UDim2.new(0, -2, hue, -2)
+                            h, s, v = Color3.toHSV(value)
+                            updateColor()
                         end
                     end
                 end)
                 
-                return {
-                    Set = function(_, newValue)
-                        value = newValue
-                        hue, sat, val = Color3.toHSV(newValue)
-                        colorPreview.BackgroundColor3 = value
-                        svPicker.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
-                        svCursor.Position = UDim2.new(sat, -5, 1 - val, -5)
-                        hueCursor.Position = UDim2.new(0, -2, hue, -2)
-                        hexInput.Text = "#" .. string.format("%02X%02X%02X", math.floor(value.R * 255), math.floor(value.G * 255), math.floor(value.B * 255))
-                        
-                        if flag then
-                            FSlib.Flags[flag] = value
-                        end
-                        callback(value)
-                    end,
-                    Get = function()
-                        return value
-                    end,
-                }
+                -- Toggle panel
+                colorPreview.MouseButton1Click:Connect(function()
+                    isOpen = not isOpen
+                    pickerPanel.Visible = isOpen
+                    
+                    if isOpen then
+                        local previewPos = colorPreview.AbsolutePosition
+                        pickerPanel.Position = UDim2.new(0, previewPos.X - 180, 0, previewPos.Y + 20)
+                    end
+                end)
+                
+                -- Apply button
+                applyBtn.MouseButton1Click:Connect(function()
+                    isOpen = false
+                    pickerPanel.Visible = false
+                    callback(value)
+                end)
+                
+                local ColorAPI = {}
+                
+                function ColorAPI:Set(newColor)
+                    value = newColor
+                    h, s, v = Color3.toHSV(value)
+                    updateColor()
+                    callback(value)
+                end
+                
+                function ColorAPI:Get()
+                    return value
+                end
+                
+                return ColorAPI
             end
             
             -- Textbox
             function Section:CreateTextbox(textboxOptions)
-                textboxOptions = textboxOptions or {}
                 local name = textboxOptions.Name or "Textbox"
-                local default = textboxOptions.Default or ""
                 local placeholder = textboxOptions.Placeholder or "Enter text..."
+                local default = textboxOptions.Default or ""
                 local flag = textboxOptions.Flag
                 local callback = textboxOptions.Callback or function() end
                 
@@ -1566,48 +1794,43 @@ function FSlib:CreateWindow(options)
                 end
                 
                 local textboxFrame = Create("Frame", {
-                    Name = "Textbox_" .. name,
-                    Parent = self.Content,
+                    Name = name,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 42),
+                    Size = UDim2.new(1, 0, 0, 40),
                     LayoutOrder = self.ElementCount,
-                    ZIndex = 10,
                 })
                 
                 local textboxLabel = Create("TextLabel", {
                     Name = "Label",
                     Parent = textboxFrame,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 14),
-                    Font = Enum.Font.GothamMedium,
+                    Position = UDim2.new(0, 14, 0, 4),
+                    Size = UDim2.new(1, -28, 0, 14),
+                    Font = Enum.Font.Gotham,
                     Text = name,
-                    TextColor3 = FSlib.Theme.Text,
-                    TextSize = 12,
+                    TextColor3 = FSlib.Theme.TextDark,
+                    TextSize = 11,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    ZIndex = 11,
                 })
-                BindToTheme(textboxLabel, "TextColor3", "Text")
+                BindTheme(textboxLabel, "TextColor3", "TextDark")
                 
                 local textbox = Create("TextBox", {
                     Name = "Input",
                     Parent = textboxFrame,
-                    BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
+                    BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Position = UDim2.new(0, 0, 0, 16),
-                    Size = UDim2.new(1, 0, 0, 24),
-                    Font = Enum.Font.GothamMedium,
+                    Position = UDim2.new(0, 14, 0, 20),
+                    Size = UDim2.new(1, -28, 0, 22),
+                    Font = Enum.Font.Gotham,
                     Text = default,
                     PlaceholderText = placeholder,
-                    PlaceholderColor3 = FSlib.Theme.TextDark,
-                    TextColor3 = FSlib.Theme.Text,
-                    TextSize = 12,
+                    TextColor3 = Color3.fromRGB(255, 255, 255),
+                    PlaceholderColor3 = FSlib.Theme.TextDisabled,
+                    TextSize = 11,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     ClearTextOnFocus = false,
-                    ZIndex = 11,
                 })
-                BindToTheme(textbox, "BackgroundColor3", "BackgroundSecondary")
-                BindToTheme(textbox, "TextColor3", "Text")
-                BindToTheme(textbox, "PlaceholderColor3", "TextDark")
                 
                 Create("UIPadding", {
                     Parent = textbox,
@@ -1629,53 +1852,52 @@ function FSlib:CreateWindow(options)
                     callback(value)
                 end)
                 
-                return {
-                    Set = function(_, newValue)
-                        value = newValue
-                        textbox.Text = newValue
-                        if flag then
-                            FSlib.Flags[flag] = value
-                        end
-                        callback(value)
-                    end,
-                    Get = function()
-                        return value
-                    end,
-                }
+                local TextboxAPI = {}
+                
+                function TextboxAPI:Set(newValue)
+                    value = newValue
+                    textbox.Text = value
+                    if flag then
+                        FSlib.Flags[flag] = value
+                    end
+                end
+                
+                function TextboxAPI:Get()
+                    return value
+                end
+                
+                return TextboxAPI
             end
             
             -- Button
             function Section:CreateButton(buttonOptions)
-                buttonOptions = buttonOptions or {}
                 local name = buttonOptions.Name or "Button"
                 local callback = buttonOptions.Callback or function() end
                 
                 self.ElementCount = self.ElementCount + 1
                 
                 local buttonFrame = Create("Frame", {
-                    Name = "Button_" .. name,
-                    Parent = self.Content,
+                    Name = name,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 26),
+                    Size = UDim2.new(1, 0, 0, 36),
                     LayoutOrder = self.ElementCount,
-                    ZIndex = 10,
                 })
                 
                 local button = Create("TextButton", {
                     Name = "Button",
                     Parent = buttonFrame,
-                    BackgroundColor3 = FSlib.Theme.BackgroundSecondary,
+                    BackgroundColor3 = FSlib.Theme.BackgroundTertiary,
                     BorderSizePixel = 0,
-                    Size = UDim2.new(1, 0, 1, 0),
-                    Font = Enum.Font.GothamBold,
+                    Position = UDim2.new(0, 14, 0, 4),
+                    Size = UDim2.new(1, -28, 0, 28),
+                    Font = Enum.Font.GothamMedium,
                     Text = name,
                     TextColor3 = FSlib.Theme.Text,
-                    TextSize = 12,
+                    TextSize = 11,
+                    AutoButtonColor = false,
                     ClipsDescendants = true,
-                    ZIndex = 11,
                 })
-                BindToTheme(button, "BackgroundColor3", "BackgroundSecondary")
-                BindToTheme(button, "TextColor3", "Text")
                 
                 Create("UIStroke", {
                     Parent = button,
@@ -1688,7 +1910,7 @@ function FSlib:CreateWindow(options)
                 end)
                 
                 button.MouseLeave:Connect(function()
-                    Tween(button, { BackgroundColor3 = FSlib.Theme.BackgroundSecondary }, 0.15)
+                    Tween(button, { BackgroundColor3 = FSlib.Theme.BackgroundTertiary }, 0.15)
                 end)
                 
                 button.MouseButton1Click:Connect(function()
@@ -1705,90 +1927,68 @@ function FSlib:CreateWindow(options)
                 
                 local labelFrame = Create("Frame", {
                     Name = "Label",
-                    Parent = self.Content,
+                    Parent = elementsHolder,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 16),
+                    Size = UDim2.new(1, 0, 0, 24),
                     LayoutOrder = self.ElementCount,
-                    ZIndex = 10,
                 })
                 
                 local label = Create("TextLabel", {
                     Name = "Text",
                     Parent = labelFrame,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 1, 0),
-                    Font = Enum.Font.GothamMedium,
-                    Text = text or "",
-                    TextColor3 = FSlib.Theme.TextDark,
+                    Position = UDim2.new(0, 14, 0, 0),
+                    Size = UDim2.new(1, -28, 1, 0),
+                    Font = Enum.Font.Gotham,
+                    Text = text,
+                    TextColor3 = FSlib.Theme.TextDisabled,
                     TextSize = 11,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    ZIndex = 11,
                 })
-                BindToTheme(label, "TextColor3", "TextDark")
+                BindTheme(label, "TextColor3", "TextDisabled")
                 
-                return {
-                    Set = function(_, newText)
-                        label.Text = newText
-                    end,
-                }
+                local LabelAPI = {}
+                
+                function LabelAPI:Set(newText)
+                    label.Text = newText
+                end
+                
+                return LabelAPI
             end
             
             -- Divider
             function Section:CreateDivider()
                 self.ElementCount = self.ElementCount + 1
                 
-                local divider = Create("Frame", {
+                local dividerFrame = Create("Frame", {
                     Name = "Divider",
-                    Parent = self.Content,
+                    Parent = elementsHolder,
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 12),
+                    LayoutOrder = self.ElementCount,
+                })
+                
+                Create("Frame", {
+                    Name = "Line",
+                    Parent = dividerFrame,
                     BackgroundColor3 = FSlib.Theme.Border,
                     BorderSizePixel = 0,
-                    Size = UDim2.new(1, 0, 0, 1),
-                    LayoutOrder = self.ElementCount,
-                    ZIndex = 10,
+                    Position = UDim2.new(0, 14, 0.5, 0),
+                    Size = UDim2.new(1, -28, 0, 1),
                 })
-                BindToTheme(divider, "BackgroundColor3", "Border")
                 
-                return divider
+                return dividerFrame
             end
             
             table.insert(self.Sections, Section)
             return Section
         end
         
-        -- Tab button events
-        tabButton.MouseButton1Click:Connect(function()
-            for _, t in ipairs(Window.Tabs) do
-                t.Button.TextColor3 = FSlib.Theme.TextDark
-                t.Button.Indicator.Visible = false
-                t.Content.Visible = false
-            end
-            
-            tabButton.TextColor3 = FSlib.Theme.Text
-            tabIndicator.Visible = true
-            tabContent.Visible = true
-            Window.ActiveTab = Tab
-        end)
+        table.insert(Window.Tabs, Tab)
         
-        tabButton.MouseEnter:Connect(function()
-            if Window.ActiveTab ~= Tab then
-                Tween(tabButton, { TextColor3 = FSlib.Theme.Text }, 0.1)
-            end
-        end)
-        
-        tabButton.MouseLeave:Connect(function()
-            if Window.ActiveTab ~= Tab then
-                Tween(tabButton, { TextColor3 = FSlib.Theme.TextDark }, 0.1)
-            end
-        end)
-        
-        table.insert(self.Tabs, Tab)
-        
-        -- Auto-select first tab
-        if #self.Tabs == 1 then
-            tabButton.TextColor3 = FSlib.Theme.Text
-            tabIndicator.Visible = true
-            tabContent.Visible = true
-            self.ActiveTab = Tab
+        -- Select first tab
+        if #Window.Tabs == 1 then
+            selectTab()
         end
         
         return Tab
@@ -1798,215 +1998,93 @@ function FSlib:CreateWindow(options)
     return Window
 end
 
--- Notification System
-function FSlib:Notify(options)
-    options = options or {}
-    local title = options.Title or "Notification"
-    local content = options.Content or ""
-    local duration = options.Duration or 3
-    local notifType = options.Type or "Info"
+-- Config System
+FSlib.ConfigFolder = "FSlib_Configs"
+
+function FSlib:SaveConfig(name)
+    if not isfolder then return false end
     
-    local colors = {
-        Success = FSlib.Theme.Success,
-        Warning = FSlib.Theme.Warning,
-        Error = FSlib.Theme.Error,
-        Info = FSlib.Theme.Info,
-    }
-    
-    local accentColor = colors[notifType] or colors.Info
-    
-    local screenGui = game:GetService("CoreGui"):FindFirstChild("FSlib_Notifications")
-    if not screenGui then
-        screenGui = Create("ScreenGui", {
-            Name = "FSlib_Notifications",
-            Parent = game:GetService("CoreGui"),
-            ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-            ResetOnSpawn = false,
-        })
-        
-        Create("Frame", {
-            Name = "Container",
-            Parent = screenGui,
-            BackgroundTransparency = 1,
-            Position = UDim2.new(1, -260, 0, 10),
-            Size = UDim2.new(0, 250, 1, -20),
-        })
-        
-        Create("UIListLayout", {
-            Parent = screenGui.Container,
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 8),
-            VerticalAlignment = Enum.VerticalAlignment.Bottom,
-        })
+    if not isfolder(self.ConfigFolder) then
+        makefolder(self.ConfigFolder)
     end
     
-    local container = screenGui.Container
+    local configData = {}
+    for flag, value in pairs(self.Flags) do
+        if typeof(value) == "Color3" then
+            configData[flag] = {
+                Type = "Color3",
+                R = value.R,
+                G = value.G,
+                B = value.B,
+            }
+        elseif typeof(value) == "EnumItem" then
+            configData[flag] = {
+                Type = "EnumItem",
+                EnumType = tostring(value.EnumType),
+                Name = value.Name,
+            }
+        else
+            configData[flag] = {
+                Type = typeof(value),
+                Value = value,
+            }
+        end
+    end
     
-    local notif = Create("Frame", {
-        Name = "Notification",
-        Parent = container,
-        BackgroundColor3 = FSlib.Theme.Background,
-        BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 0),
-        ClipsDescendants = true,
-    })
-    
-    Create("UIStroke", {
-        Parent = notif,
-        Color = FSlib.Theme.Border,
-        Thickness = 1,
-    })
-    
-    local accent = Create("Frame", {
-        Name = "Accent",
-        Parent = notif,
-        BackgroundColor3 = accentColor,
-        BorderSizePixel = 0,
-        Size = UDim2.new(0, 3, 1, 0),
-    })
-    
-    local titleLabel = Create("TextLabel", {
-        Name = "Title",
-        Parent = notif,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 8),
-        Size = UDim2.new(1, -20, 0, 14),
-        Font = Enum.Font.GothamBold,
-        Text = title,
-        TextColor3 = accentColor,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
-    })
-    
-    local contentLabel = Create("TextLabel", {
-        Name = "Content",
-        Parent = notif,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 24),
-        Size = UDim2.new(1, -20, 0, 28),
-        Font = Enum.Font.GothamMedium,
-        Text = content,
-        TextColor3 = FSlib.Theme.Text,
-        TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Top,
-        TextWrapped = true,
-    })
-    
-    Tween(notif, { Size = UDim2.new(1, 0, 0, 60) }, 0.3)
-    
-    task.delay(duration, function()
-        Tween(notif, { Size = UDim2.new(1, 0, 0, 0) }, 0.3)
-        task.delay(0.3, function()
-            notif:Destroy()
-        end)
+    local success, result = pcall(function()
+        writefile(self.ConfigFolder .. "/" .. name .. ".json", HttpService:JSONEncode(configData))
     end)
+    
+    return success
 end
 
--- Watermark
-function FSlib:CreateWatermark(options)
-    options = options or {}
-    local name = options.Name or "FSlib"
+function FSlib:LoadConfig(name)
+    if not isfile then return false end
     
-    local screenGui = Create("ScreenGui", {
-        Name = "FSlib_Watermark",
-        Parent = game:GetService("CoreGui"),
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
-        ResetOnSpawn = false,
-    })
+    local path = self.ConfigFolder .. "/" .. name .. ".json"
+    if not isfile(path) then return false end
     
-    local watermark = Create("Frame", {
-        Name = "Watermark",
-        Parent = screenGui,
-        BackgroundColor3 = FSlib.Theme.Background,
-        BorderSizePixel = 0,
-        Position = UDim2.new(0, 10, 0, 10),
-        Size = UDim2.new(0, 280, 0, 28),
-    })
-    BindToTheme(watermark, "BackgroundColor3", "Background")
-    
-    Create("UIStroke", {
-        Parent = watermark,
-        Color = FSlib.Theme.Border,
-        Thickness = 1,
-    })
-    
-    local accent = Create("Frame", {
-        Name = "Accent",
-        Parent = watermark,
-        BackgroundColor3 = FSlib.Theme.Primary,
-        BorderSizePixel = 0,
-        Size = UDim2.new(0, 3, 1, 0),
-    })
-    BindToTheme(accent, "BackgroundColor3", "Primary")
-    
-    local text = Create("TextLabel", {
-        Name = "Text",
-        Parent = watermark,
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 0),
-        Size = UDim2.new(1, -24, 1, 0),
-        Font = Enum.Font.GothamMedium,
-        Text = name .. "  |  FPS: 60  |  Ping: 0ms  |  00:00:00",
-        TextColor3 = FSlib.Theme.Text,
-        TextSize = 12,
-        TextXAlignment = Enum.TextXAlignment.Left,
-    })
-    BindToTheme(text, "TextColor3", "Text")
-    
-    local lastUpdate = 0
-    local fps = 60
-    
-    RunService.RenderStepped:Connect(function(delta)
-        fps = math.floor(1 / delta)
-    end)
-    
-    RunService.Heartbeat:Connect(function()
-        if tick() - lastUpdate >= 0.5 then
-            lastUpdate = tick()
-            local ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-            local timeStr = os.date("%H:%M:%S")
-            text.Text = string.format("%s  |  FPS: %d  |  Ping: %dms  |  %s", name, fps, ping, timeStr)
-            
-            local textWidth = text.TextBounds.X + 30
-            watermark.Size = UDim2.new(0, math.max(textWidth, 200), 0, 28)
+    local success, result = pcall(function()
+        local data = HttpService:JSONDecode(readfile(path))
+        for flag, info in pairs(data) do
+            if info.Type == "Color3" then
+                self.Flags[flag] = Color3.new(info.R, info.G, info.B)
+            elseif info.Type == "EnumItem" then
+                self.Flags[flag] = Enum[info.EnumType][info.Name]
+            else
+                self.Flags[flag] = info.Value
+            end
         end
     end)
     
-    -- Dragging
-    local dragging = false
-    local dragStart, startPos
+    return success
+end
+
+function FSlib:GetConfigs()
+    if not isfolder or not isfolder(self.ConfigFolder) then
+        return {}
+    end
     
-    watermark.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = watermark.Position
+    local configs = {}
+    for _, file in ipairs(listfiles(self.ConfigFolder)) do
+        if file:match("%.json$") then
+            table.insert(configs, file:match("([^/\\]+)%.json$"))
         end
-    end)
+    end
     
-    watermark.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
+    return configs
+end
+
+function FSlib:DeleteConfig(name)
+    if not isfile then return false end
     
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            watermark.Position = UDim2.new(
-                startPos.X.Scale, startPos.X.Offset + delta.X,
-                startPos.Y.Scale, startPos.Y.Offset + delta.Y
-            )
-        end
-    end)
+    local path = self.ConfigFolder .. "/" .. name .. ".json"
+    if isfile(path) then
+        delfile(path)
+        return true
+    end
     
-    return {
-        Frame = watermark,
-        SetVisible = function(_, visible)
-            watermark.Visible = visible
-        end,
-    }
+    return false
 end
 
 return FSlib
