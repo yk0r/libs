@@ -6,7 +6,7 @@
     ██║     ██║  ██║██║███████╗██║ ╚████║██████╔╝███████║██║  ██║██║██║        ███████╗╚██████╔╝██║  ██║
     ╚═╝     ╚═╝  ╚═╝╚═╝╚══════╝╚═╝  ╚═══╝╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝╚═╝        ╚══════╝ ╚═════╝ ╚═╝  ╚═╝
     
-    FriendShip.Lua UI Library v1.0.0
+    FriendShip.Lua UI Library v1.0.1
     Created by FS Team
     
     Features:
@@ -26,7 +26,6 @@
 --]]
 
 local FSLibrary = {}
-FSLibrary.__index = FSLibrary
 
 -- Services
 local TweenService = game:GetService("TweenService")
@@ -136,7 +135,7 @@ local function MakeDraggable(frame, handle)
 end
 
 -- Main Library
-function FSLibrary:Create(config)
+function FSLibrary.new(config)
     config = config or {}
     local windowName = config.Name or "FriendShip.Lua"
     local windowSize = config.Size or UDim2.new(0, 900, 0, 600)
@@ -296,50 +295,30 @@ function FSLibrary:Create(config)
         Thickness = 1
     })
     
-    local GameIcon = Create("Frame", {
-        Parent = SidebarFooter,
-        BackgroundColor3 = Color3.fromRGB(30, 58, 138),
-        Position = UDim2.new(0, 16, 0.5, -16),
-        Size = UDim2.new(0, 32, 0, 32)
-    })
-    
-    Create("UICorner", {Parent = GameIcon, CornerRadius = UDim.new(0, 4)})
-    
-    Create("UIStroke", {
-        Parent = GameIcon,
-        Color = Theme.Accent,
-        Transparency = 0.7,
-        Thickness = 1
-    })
-    
-    Create("TextLabel", {
-        Parent = GameIcon,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = "PF",
-        TextColor3 = Theme.Accent,
-        TextSize = 10
-    })
-    
+    -- Game Name (NO ICON)
     local GameName = Create("TextLabel", {
         Parent = SidebarFooter,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 56, 0.5, -16),
-        Size = UDim2.new(1, -70, 0, 16),
+        Position = UDim2.new(0, 16, 0.5, -14),
+        Size = UDim2.new(1, -32, 0, 16),
         Font = Enum.Font.GothamBold,
-        Text = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name or "Unknown Game",
+        Text = "Unknown Game",
         TextColor3 = Theme.Text,
         TextSize = 11,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd
     })
     
+    -- Try to get game name safely
+    pcall(function()
+        GameName.Text = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
+    end)
+    
     local UserRank = Create("TextLabel", {
         Parent = SidebarFooter,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 56, 0.5, 2),
-        Size = UDim2.new(1, -70, 0, 14),
+        Position = UDim2.new(0, 16, 0.5, 4),
+        Size = UDim2.new(1, -32, 0, 14),
         Font = Enum.Font.GothamBold,
         Text = "Developer",
         TextColor3 = Theme.Accent,
